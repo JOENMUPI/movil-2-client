@@ -32,7 +32,7 @@ const SignUp = ({ navigation }) => {
             } else { 
                 switch(data.typeResponse) { 
                     case 'Success':  
-                        await AsyncStorage.setItem("user", JSON.stringify({...user, id: data.body.id}));
+                        await AsyncStorage.setItem("user", JSON.stringify({ email: user.email, name: user.name, id: data.body.id }));
                         navigation.navigate('Home');
                         break;
                 
