@@ -1,35 +1,60 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
-import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
+import { View, Text, TextInput, ToastAndroid, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
 import AsyncStorage from '@react-native-community/async-storage';
+import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 
-import axios from 'axios';
+import Field from '../components/Field';
+import Http from '../components/Http';
 
 import { signUpStyles } from '../styles/screens/signUp';
 
 const SignUp = ({ navigation }) => {
-
-    const [name, setName] = useState("");
-    const [email, setEmail] = useState("");
-    const [password, setPassword] = useState("");
+    const [user, setUser] = useState({ email: '', password: '', name: '', confirmPassword: '' });
     const [borderColor, setBorderColor] = useState(null);
     const [loading, setLoading] = useState(false);
-
+    
+    let passInput = '';
+    let pass2Input = '';
+    let emailInput = '';
+    
     const submitSignUp = async () => {
-        try {
-            setLoading(true);
-            let res = await axios.post("https://noseXD.herokuapp.com/signup", {
-                name,
-                email,
-                password
-            });
-            setLoading(false);
-            setTimeout(() => {
-                navigation.navigate("SignIn");
-            }, 500);
-        } catch (e) {
-            Alert.alert(e.response.data.error);
+        setLoading(true); 
+        if(!Field.checkFields([ user.email, user.password, user.name, user.confirmPassword ])) {
+            Alert.alert('Empty Field', 'Please, fill the fields');
+
+        } else { 
+            const data = await Http.send('POST', 'user/singup', user);
+
+        
+            if(!data) {
+                Alert.alert('Fatal Error', 'No data from server...');
+                
+            } else { 
+                switch(data.typeResponse) { 
+                    case 'Success':  
+                        await AsyncStorage.setItem("user", JSON.stringify({...user, id: data.body.id}));
+                        navigation.navigate('Home');
+                        break;
+                
+                    case 'Fail':
+                        data.body.errors.forEach(element => {
+                            ToastAndroid.showWithGravity(
+                                element.text,
+                                ToastAndroid.SHORT,
+                                ToastAndroid.TOP
+                            );
+                        });
+                        break;
+
+                    default:
+                        Alert.alert(data.typeResponse, data.message);
+                        break;
+                }
+                
+            }
         }
+
+        setLoading(false);
     }
 
     const onFocus = value => {
@@ -47,11 +72,14 @@ const SignUp = ({ navigation }) => {
                     <MaterialIcons name="person" size={20} color={borderColor == "name" ? "#3465d9" : "gray"} />
                     <TextInput
                         placeholder="Name"
+                        blurOnSubmit={false}
                         style={[signUpStyles.textInput, {
                             color: borderColor == "name" ? "#3465d9" : "gray"
                         }]}
-                        onFocus={() => onFocus("name")}
-                        onChangeText={name => setName(name)}
+                        autoFocus
+                        //onFocus={(x) => onFocus("name")}
+                        onChangeText={name => setUser({ ...user, name: name })}
+                        onSubmitEditing={() => emailInput.focus()}
                     />
                 </View>
                 <View style={[signUpStyles.section, {
@@ -59,12 +87,17 @@ const SignUp = ({ navigation }) => {
                 }]}>
                     <MaterialIcons name="email" size={20} color={borderColor == "email" ? "#3465d9" : "gray"} />
                     <TextInput
+                        ref={input => emailInput = input}
                         placeholder="Email"
+                        autoCapitalize="none"
+                        keyboardType={'email-address'}
+                        blurOnSubmit={false}
                         style={[signUpStyles.textInput, {
                             color: borderColor == "email" ? "#3465d9" : "gray"
                         }]}
-                        onFocus={() => onFocus("email")}
-                        onChangeText={email => setEmail(email)}
+                        //onFocus={() => onFocus("email")}
+                        onChangeText={email => setUser({ ...user, email: email })}
+                        onSubmitEditing={() => passInput.focus()}
                     />
                 </View>
                 <View style={[signUpStyles.section, {
@@ -72,19 +105,45 @@ const SignUp = ({ navigation }) => {
                 }]}>
                     <MaterialIcons name="lock-outline" size={20} color={borderColor == "password" ? "#3465d9" : "gray"} />
                     <TextInput
+                        ref={input => passInput = input}
                         placeholder="Password"
+                        autoCapitalize="none"
+                        blurOnSubmit={false}
                         style={[signUpStyles.textInput, {
                             color: borderColor == "password" ? "#3465d9" : "gray"
                         }]}
                         secureTextEntry
-                        onFocus={() => onFocus("password")}
-                        onChangeText={password => setPassword(password)}
+                        //onFocus={() => onFocus("password")}
+                        onChangeText={password => setUser({ ...user, password: password })}
+                        onSubmitEditing={() => pass2Input.focus()}
+                    />
+                </View>
+                <View style={[signUpStyles.section, {
+                    borderColor: borderColor == "confirmPassword" ? "#3465d9" : "gray"
+                }]}>
+                    <MaterialIcons name="lock-outline" size={20} color={borderColor == "confirmPassword" ? "#3465d9" : "gray"} />
+                    <TextInput
+                        ref={input => pass2Input = input}
+                        placeholder="Confirm Password"
+                        autoCapitalize="none"
+                        blurOnSubmit={false}
+                        style={[signUpStyles.textInput, {
+                            color: borderColor == "confirmPassword" ? "#3465d9" : "gray"
+                        }]}
+                        secureTextEntry
+                        //onFocus={() => onFocus("confirmPassword")}
+                        onChangeText={password => setUser({ ...user, confirmPassword: password })}
+                        onSubmitEditing={() => submitSignUp()}
                     />
                 </View>
             </View>
-            {loading ? <ActivityIndicator /> : null}
+            
             <TouchableOpacity onPress={() => submitSignUp()} style={signUpStyles.signIn}>
-                <Text style={signUpStyles.textSignIn}>Sign Up</Text>
+                {
+                    (loading) 
+                    ? <ActivityIndicator size="small" color="#00ff00" /> 
+                    : <Text style={signUpStyles.textSignIn}>Sign Up</Text>
+                }
             </TouchableOpacity>
             <View style={signUpStyles.signUp}>
                 <Text style={[signUpStyles.textSignUp, {

@@ -1,34 +1,58 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, TextInput, ToastAndroid, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
 import AsyncStorage from '@react-native-community/async-storage';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 
-import axios from 'axios';
+import Field from '../components/Field';
+import Http from '../components/Http';
 
 import { signInStyles } from '../styles/screens/signIn';
 
-const SignIn = ({ navigation }) => {
 
-    const [email, setEmail] = useState("");
-    const [password, setPassword] = useState("");
+
+const SignIn = ({ navigation }) => {
+    const [user, setUser] = useState({ email: '', password: '' });
     const [borderColor, setBorderColor] = useState(null);
     const [loading, setLoading] = useState(false);
 
-    const submitSignIn = async () => {
-        try {
-            setLoading(true);
-            let res = await axios.post("https://noseXd.herokuapp.com/signin", {
-                email,
-                password
-            });
-            setLoading(false);
-            await AsyncStorage.setItem("token", res.data.token);
-            setTimeout(() => {
-                navigation.navigate("Dashboard");
-            }, 500);
-        } catch (e) {
-            Alert.alert(e.response.data.error);
+    let passInput = '';
+
+    const submitSignIn = async () => { 
+        setLoading(true);
+        if(!Field.checkFields([ user.email, user.password ])) {
+            Alert.alert('Empty Field', 'Please, fill the fields');
+            
+        } else {
+            const data = await Http.send('POST', 'user/singin', user);
+        
+            if(!data) {
+                Alert.alert('Fatal Error', 'No data from server...');
+                
+            } else {
+                switch(data.typeResponse) {
+                    case 'Success':  
+                        await AsyncStorage.setItem("user", JSON.stringify(data.body[0]));
+                        navigation.navigate('Home');
+                        break;
+                
+                    case 'Fail':
+                        data.body.forEach(element => {
+                            ToastAndroid.showWithGravity(
+                                element.text,
+                                ToastAndroid.SHORT,
+                                ToastAndroid.TOP
+                            );
+                        });
+                        break;
+
+                    default:
+                        Alert.alert(data.typeResponse, data.message);
+                        break;
+                }
+            }
         }
+
+        setLoading(false);
     }
 
     const onFocus = value => {
@@ -46,11 +70,16 @@ const SignIn = ({ navigation }) => {
                     <MaterialIcons name="email" size={20} color={borderColor == "email" ? "#3465d9" : "gray"} />
                     <TextInput
                         placeholder="Email"
+                        autoCapitalize="none"
+                        keyboardType={'email-address'}
+                        blurOnSubmit={false}
                         style={[signInStyles.textInput, {
                             color: borderColor == "email" ? "#3465d9" : "gray"
                         }]}
-                        onFocus={() => onFocus("email")}
-                        onChangeText={email => setEmail(email)}
+                        autoFocus
+                        //onFocus={() => onFocus("email")}
+                        onChangeText={email => setUser({ ...user, email: email })}
+                        onSubmitEditing={() => passInput.focus()}
                     />
                 </View>
                 <View style={[signInStyles.section, {
@@ -58,19 +87,25 @@ const SignIn = ({ navigation }) => {
                 }]}>
                     <MaterialIcons name="lock-outline" size={20} color={borderColor == "password" ? "#3465d9" : "gray"} />
                     <TextInput
+                        ref={input => passInput = input}
                         placeholder="Password"
+                        autoCapitalize="none"
                         style={[signInStyles.textInput, {
                             color: borderColor == "password" ? "#3465d9" : "gray"
                         }]}
                         secureTextEntry
-                        onFocus={() => onFocus("password")}
-                        onChangeText={password => setPassword(password)}
+                        //onFocus={() => onFocus("password")}
+                        onChangeText={password => setUser({ ...user, password: password })}
                     />
                 </View>
             </View>
-            {loading ? <ActivityIndicator /> : null}
+            
             <TouchableOpacity onPress={() => submitSignIn()} style={signInStyles.signIn}>
-                <Text style={signInStyles.textSignIn}>Sign In</Text>
+                {
+                    (loading) 
+                    ? <ActivityIndicator size="small" color="#00ff00" /> 
+                    : <Text style={signInStyles.textSignIn}>Sign In</Text>
+                }
             </TouchableOpacity>
             <View style={signInStyles.signUp}>
                 <Text style={[signInStyles.textSignUp, {
