@@ -6,6 +6,11 @@ import { createStackNavigator } from '@react-navigation/stack';
 import SignUp from './src/screens/signUp';
 import SignIn from './src/screens/signIn';
 import Home from './src/screens/home';
+import ListDetail from './src/screens/listDetail';
+import TaskDetail from './src/screens/taskDetail';
+
+
+import Test from './src/screens/test';
 
 
 const Stack = createStackNavigator();
@@ -14,9 +19,13 @@ export default function App() {
   return (
     <NavigationContainer>
       <Stack.Navigator>
-      <Stack.Screen name="SignIn" component={SignIn} options={{ title: "Sign In", headerShown: false }}></Stack.Screen>
+     
+        <Stack.Screen name="SignIn" component={SignIn} options={{ title: "Sign In", headerShown: false }}></Stack.Screen>
         <Stack.Screen name="SignUp" component={SignUp} options={{ title: "Sign Up", headerShown: false }}></Stack.Screen>
         <Stack.Screen name="Home" component={Home} options={{ title: "Home", headerShown: false }}></Stack.Screen>
+        <Stack.Screen name="ListDetail" component={ListDetail} options={{ title: "List Detail", headerShown: false }}></Stack.Screen>
+        <Stack.Screen name="TaskDetail" component={TaskDetail} options={{ title: "Task Detail", headerShown: false }}></Stack.Screen>
+        <Stack.Screen name="Test" component={Test} options={{ title: "Test", headerShown: false }}></Stack.Screen>
       </Stack.Navigator>
     </NavigationContainer>
   );

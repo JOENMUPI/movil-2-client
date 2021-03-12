@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, ToastAndroid, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
 import AsyncStorage from '@react-native-community/async-storage';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
@@ -32,11 +32,11 @@ const SignIn = ({ navigation }) => {
                 switch(data.typeResponse) {
                     case 'Success':  
                         await AsyncStorage.setItem("user", JSON.stringify(data.body[0]));
-                        navigation.navigate('Home');
+                        navigation.navigate('Home', data.body[0]);
                         break;
                 
                     case 'Fail':
-                        data.body.forEach(element => {
+                        data.body.errors.forEach(element => {
                             ToastAndroid.showWithGravity(
                                 element.text,
                                 ToastAndroid.SHORT,
@@ -58,6 +58,14 @@ const SignIn = ({ navigation }) => {
     const onFocus = value => {
         setBorderColor(value);
     }
+
+    const removeUser = async () => {
+        await AsyncStorage.removeItem('user');
+    }
+
+    useEffect(async () => {
+        removeUser();
+    }, []);
 
     return (
         <View style={signInStyles.container}>

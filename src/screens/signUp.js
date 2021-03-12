@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, ToastAndroid, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
 import AsyncStorage from '@react-native-community/async-storage';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
@@ -33,7 +33,7 @@ const SignUp = ({ navigation }) => {
                 switch(data.typeResponse) { 
                     case 'Success':  
                         await AsyncStorage.setItem("user", JSON.stringify({ email: user.email, name: user.name, id: data.body.id }));
-                        navigation.navigate('Home');
+                        navigation.navigate('Home', { email: user.email, name: user.name, id: data.body.id });
                         break;
                 
                     case 'Fail':
@@ -60,6 +60,14 @@ const SignUp = ({ navigation }) => {
     const onFocus = value => {
         setBorderColor(value);
     }
+
+    const removeUser = async () => {
+        await AsyncStorage.removeItem('user');
+    }
+
+    useEffect(async () => {
+        removeUser();
+    }, []);
 
     return (
         <View style={signUpStyles.container}>
