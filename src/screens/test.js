@@ -3,81 +3,146 @@ import {
     StyleSheet,
     Text,
     TouchableOpacity,
-    TouchableHighlight,
     View,
+    LayoutAnimation,
+    CheckBox,
 } from 'react-native';
+import Animated from 'react-native-reanimated';
 
-import { SwipeListView } from 'react-native-swipe-list-view';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import DraggableFlatList from 'react-native-draggable-flatlist';
+import SwipeableItem from 'react-native-swipeable-item';
 
+const NUM_ITEMS = 20;
+const getColor = (i) => {
+    const multiplier = 255 / (NUM_ITEMS - 1);
+    const colorVal = i * multiplier;
+    return `rgb(${colorVal}, ${Math.abs(128 - colorVal)}, ${255 - colorVal})`;
+}
+
+const initialData = [...Array(NUM_ITEMS)].fill(0).map((d, index) => {
+    const backgroundColor = getColor(index);
+    
+    return {
+        text: `ROW ${index}`,
+        key: `key-${backgroundColor}`,
+    }
+})
 
 export default function Basic() {
-    const [listData, setListData] = useState(
-        Array(20)
-            .fill('')
-            .map((_, i) => ({ key: `${i}`, text: `item #${i}` }))
-    );
+    const [listData, setListData] = useState(initialData);
 
-    const closeRow = (rowMap, rowKey) => {
-        if (rowMap[rowKey]) {
-            rowMap[rowKey].closeRow();
-        }
-    };
+    let itemRefs = new Map();
+    const { multiply, sub } = Animated;
 
-    const deleteRow = (rowMap, rowKey) => {
-        closeRow(rowMap, rowKey);
-        const newData = [...listData];
-        const prevIndex = listData.findIndex(item => item.key === rowKey);
-        newData.splice(prevIndex, 1);
-        setListData(newData);
-    };
+    const deleteItem = (item) => {
+        const updatedData = listData.filter(i => i !== item);
 
-    const onRowDidOpen = rowKey => {
-        console.log('This row opened', rowKey);
-    };
+        LayoutAnimation.configureNext(LayoutAnimation.Presets.spring);
+        setListData(updatedData);
+    }
 
-    const renderItem = data => (
-        <TouchableHighlight
-            onPress={() => console.log('You touched me')}
-            style={styles.rowFront}
-            underlayColor={'#AAA'}
-        >
-            <View>
-                <Text>I am {data.item.text} in a SwipeListView</Text>
-            </View>
-        </TouchableHighlight>
-    );
-
-    const renderHiddenItem = (data, rowMap) => (
-        <View style={styles.rowBack}>
-            <Text>Left</Text>
-            <TouchableOpacity
-                style={[styles.backRightBtn, styles.backRightBtnLeft]}
-                onPress={() => closeRow(rowMap, data.item.key)}
-            >
-                <Text style={styles.backTextWhite}>Close</Text>
+    const renderUnderlayLeft = ({ item, percentOpen, close }) => (
+        <Animated.View style={[styles.backRow, styles.underlayLeft, { opacity: percentOpen }]}>
+            <TouchableOpacity onPress={() => deleteItem(item)} onPressOut={close}>
+                <MaterialCommunityIcons
+                    name={'trash-can'}
+                    size={30}
+                    style={{ color: 'black' }} 
+                />
             </TouchableOpacity>
-            <TouchableOpacity
-                style={[styles.backRightBtn, styles.backRightBtnRight]}
-                onPress={() => deleteRow(rowMap, data.item.key)}
-            >
-                <Text style={styles.backTextWhite}>Delete</Text>
-            </TouchableOpacity>
+        </Animated.View>
+    )
+
+    const renderUnderlayRight = ({ item, percentOpen, open }) => (
+        <View style={[styles.backRow, styles.underlayRight]}>
+            <Animated.View
+                style={[{ transform: [{ translateX: multiply(sub(1, percentOpen), -100) }] }]}
+                >
+                <TouchableOpacity onPressOut={() => console.log('update', item)}>
+                    <MaterialCommunityIcons
+                        name={'bell'}
+                        size={30}
+                        style={{ color: 'black' }} 
+                    />
+                </TouchableOpacity>
+            </Animated.View>
         </View>
-    );
+    )
+    
+
+    const closeSwipe = (open, item) => {
+        if (open) { 
+            [...itemRefs.entries()].forEach(([key, ref]) => {
+                if (key !== item.key && ref) ref.close();
+            });
+        }
+    }
+
+    const setReferenceItemSwipe = (ref, item) => {
+        if (ref && !itemRefs.get(item.key)) {
+            itemRefs.set(item.key, ref);
+        }
+    }
+
+    const renderItem = ({ item, index, drag }) => (
+        <SwipeableItem 
+            key={item.key}
+            item={item}
+            ref={(ref) => setReferenceItemSwipe(ref, item)}
+            onChange={({ open }) => closeSwipe(open, item)}
+            overSwipe={20}
+            renderUnderlayLeft={renderUnderlayLeft}
+            renderUnderlayRight={renderUnderlayRight}
+            snapPointsLeft={[75]}
+            snapPointsRight={[75]}
+            >
+            <View style={styles.item}>
+                <CheckBox
+                    value={false}
+                    onChange={() => console.log('holis')}
+                />
+                <View style={styles.row}>
+                    <TouchableOpacity onLongPress={drag} onPress={() => console.log('detailListaqui', item)}>
+                        <Text style={styles.text}>{item.text}</Text>
+                    </TouchableOpacity>    
+                </View>
+            </View>
+        </SwipeableItem>
+    )
+
 
     return (
         <View style={styles.container}>
-            <SwipeListView
+            <SwipeableItem 
+            key={1051}
+            item={listData[0]}
+            ref={(ref) => setReferenceItemSwipe(ref, listData[0])}
+            onChange={({ open }) => closeSwipe(open, listData[0])}
+            overSwipe={20}
+            renderUnderlayLeft={renderUnderlayLeft}
+            renderUnderlayRight={renderUnderlayRight}
+            snapPointsLeft={[75]}
+            snapPointsRight={[75]}
+            >
+            <View style={styles.item}>
+                <CheckBox
+                    value={false}
+                    onChange={() => console.log('holis')}
+                />
+                <View style={styles.row}>
+                    <TouchableOpacity onPress={() => console.log('detailListaqui')}>
+                        <Text style={styles.text}>holis</Text>
+                    </TouchableOpacity>    
+                </View>
+            </View>
+        </SwipeableItem>
+            <DraggableFlatList
                 data={listData}
                 renderItem={renderItem}
-                renderHiddenItem={renderHiddenItem}
-                leftOpenValue={75}
-                rightOpenValue={-150}
-                previewRowKey={'0'}
-                previewOpenValue={-40}
-                previewOpenDelay={3000}
-                onRowDidOpen={onRowDidOpen}
-            />
+                keyExtractor={(item, index) => index.toString()}
+                onDragEnd={({ data }) => setListData(data)}
+            />      
         </View>
     );
 }
@@ -85,42 +150,56 @@ export default function Basic() {
 
 const styles = StyleSheet.create({
     container: {
-        backgroundColor: 'white',
+        backgroundColor: '#212121',
         flex: 1,
     },
-    backTextWhite: {
-        color: '#FFF',
-    },
-    rowFront: {
-        alignItems: 'center',
-        backgroundColor: '#CCC',
-        borderBottomColor: 'black',
-        borderBottomWidth: 1,
-        justifyContent: 'center',
-        height: 50,
-    },
-    rowBack: {
-        alignItems: 'center',
-        backgroundColor: '#DDD',
-        flex: 1,
+
+    item: {
+        height: 60,
+        backgroundColor: 'gray',
+        marginTop: 10,
+        padding: 10,
+        marginHorizontal: 10,
+        borderRadius: 20,
         flexDirection: 'row',
         justifyContent: 'space-between',
-        paddingLeft: 15,
-    },
-    backRightBtn: {
         alignItems: 'center',
-        bottom: 0,
+    },
+
+    row: {
+        backgroundColor: 'black',
+        flex: 1,
+        alignItems: 'center',
         justifyContent: 'center',
-        position: 'absolute',
-        top: 0,
-        width: 75,
+        
     },
-    backRightBtnLeft: {
-        backgroundColor: 'blue',
-        right: 75,
+
+    backRow: {
+        flexDirection: 'row',
+        borderRadius: 20,
+        marginHorizontal: 10,
+        marginTop: 10,
+        flex: 1,
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: 20,
     },
-    backRightBtnRight: {
-        backgroundColor: 'red',
-        right: 0,
+
+    text: {
+        fontWeight: 'bold',
+        color: 'white',
+        fontSize: 32,
+    },
+
+    underlayRight: {
+        flex: 1,
+        backgroundColor: 'yellow',
+        justifyContent: 'flex-start',
+    },
+    
+    underlayLeft: {
+        flex: 1,
+        backgroundColor: 'tomato',
+        justifyContent: 'flex-end',
     },
 });

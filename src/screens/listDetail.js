@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react'; 
+import React, { useState, useEffect } from 'react'; 
 import { 
     View, 
     Text, 
@@ -9,22 +9,28 @@ import {
     Modal, 
     TextInput, 
     CheckBox, 
-    StyleSheet 
 } from 'react-native';
+import Animated from 'react-native-reanimated';
 
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import DraggableFlatList from 'react-native-draggable-flatlist';
+import SwipeableItem from 'react-native-swipeable-item';
 
 import Field from '../components/Field';
 import Http from '../components/Http';
 
-import { signInStyles } from '../styles/screens/signIn';
+import { homeStyles } from '../styles/screens/home';
+import { listDetailStyles } from '../styles/screens/listDetail';
 
 
 const ListDetail = ({ navigation, route }) => {
     const [task, setTask] = useState([]);
-    const [modal, setModal] = useState(false);
+    const [modal, setModal] = useState({ type: 'create', flag: false });
     const [loading, setLoading] = useState(false);
-    const [newTask, setNewTask] = useState({ tittle: '', position: task.length + 1 });
+    const [newTask, setNewTask] = useState({ tittle: '', id: 0, position: task.length + 1 });
+
+    let itemRefs = new Map();
+    const { multiply, sub } = Animated;
 
 
     // Utilities
@@ -36,24 +42,73 @@ const ListDetail = ({ navigation, route }) => {
         );
     }
 
+    const changeToUpdateModel = (taskItem) => {  
+        setNewTask({...taskItem, tittleForUpdate: taskItem.tittle, tittle: '' });
+        setModal({ type: 'update', flag: true }); 
+    }
 
-    // Logic
-    const renderItem = ({ item, index, drag, isActive }) => (
-        <View style={styles.item}>
-          <CheckBox
-            value={item.priority}
-            onChange={() => handlePriority(item.id)}
-          />
-          <TouchableOpacity onLongPress={drag} onPress={() => navigation.navigate('TaskDetail', item)}>
-            <Text>{item.tittle}</Text>
-          </TouchableOpacity>
-          <CheckBox
-            value={item.check}
-            onChange={() => handleCheck(item.id)}
-          />
-        </View>
-    );
+    const changeToCreateModel = () => {  
+        let newTaskAux = newTask;
+
+        newTaskAux.tittle = '';
+        setNewTask(newTaskAux);
+        setModal({ type: 'create', flag: true }); 
+    }
+
+    const alertForDelete = (taskItem) => {
+        Alert.alert(
+            "Delete",
+            `Are you sure delete ${taskItem.tittle}`,
+            [
+                { text: "Cancel", style: "cancel" }, 
+                { text: "OK", onPress: () => deleteTask(taskItem) }
     
+            ], { cancelable: false }
+          );
+    } 
+
+    const renderUnderlayLeft = ({ item, percentOpen, close }) => (
+        <Animated.View style={[ listDetailStyles.backRow, listDetailStyles.underlayLeft, { opacity: percentOpen } ]}>
+            <TouchableOpacity onPress={() => alertForDelete(item)} onPressOut={close}>
+                <MaterialCommunityIcons
+                    name={'trash-can'}
+                    size={30}
+                    style={{ color: 'black', marginRight: 5 }} 
+                />
+            </TouchableOpacity>
+        </Animated.View>
+    )
+
+    const renderUnderlayRight = ({ item, percentOpen, open, close }) => (
+        <View style={[listDetailStyles.backRow, listDetailStyles.underlayRight]}>
+            <Animated.View
+                style={[{ transform: [{ translateX: multiply(sub(1, percentOpen), -100) }] }]}
+                >
+                <TouchableOpacity onPress={() => handlePriority(item.id)} onPressOut={close}>
+                    <MaterialCommunityIcons
+                        name={'bell'}
+                        size={30}
+                        style={{ color: 'black' }} 
+                    />
+                </TouchableOpacity>
+            </Animated.View>
+        </View>
+    )
+
+    const closeSwipe = (open, item) => {
+        if (open) { 
+            [...itemRefs.entries()].forEach(([key, ref]) => {
+                if (key !== item.id && ref) ref.close();
+            });
+        }
+    }
+
+    const setReferenceItemSwipe = (ref, item) => {
+        if (ref && !itemRefs.get(item.key)) {
+            itemRefs.set(item.id, ref);
+        }
+    }
+
     const handleCheck = (id) => {
         let updated = [...task];
         
@@ -66,12 +121,12 @@ const ListDetail = ({ navigation, route }) => {
         });
 
         setTask(updated);
-    };
+    }
 
     const handlePriority = (id) => {
-    let updated = [...task];
+        let updated = [...task];
     
-    updated = updated.map((taskItem, index) => { 
+        updated = updated.map((taskItem, index) => { 
             if (id === taskItem.id) { 
                 return { ...taskItem, priority: !taskItem.priority };
             }
@@ -79,9 +134,112 @@ const ListDetail = ({ navigation, route }) => {
             return taskItem;
         });
 
-
         setTask(updated);
-    };
+    }
+
+
+    // Logic
+    const renderItem = ({ item, index, drag }) => (
+        <SwipeableItem
+            key={item.key}
+            item={item}
+            ref={(ref) => setReferenceItemSwipe(ref, item)}
+            onChange={({ open }) => closeSwipe(open, item)}
+            overSwipe={20}
+            renderUnderlayLeft={renderUnderlayLeft}
+            renderUnderlayRight={renderUnderlayRight}
+            snapPointsLeft={[75]}
+            snapPointsRight={[75]}
+            >
+            <View style={listDetailStyles.item}>
+                <CheckBox
+                    value={item.check}
+                    onChange={() => handleCheck(item.id)}
+                />
+                <View style={listDetailStyles.row}>
+                    <TouchableOpacity onLongPress={drag} onPress={() => navigation.navigate('TaskDetail', item)}>
+                        <Text style={listDetailStyles.text}>{item.tittle}</Text>
+                       
+                    </TouchableOpacity>   
+                    <MaterialCommunityIcons
+                        name={'pencil'}
+                        size={30}
+                        style={{ color: 'blue' }} 
+                        onPress={() => changeToUpdateModel(item)}
+                    /> 
+                </View>
+            </View>
+        </SwipeableItem>
+    )
+
+    const deleteTask = async (taskItem) => {
+        const data = await Http.send('DELETE', `task/${taskItem.id}`, null);
+        
+        if(!data) {
+            Alert.alert('Fatal Error', 'No data from server...');
+
+        } else {
+            switch(data.typeResponse) {
+                case 'Success': 
+                    let auxTask = task.filter(i => i.id != taskItem.id);
+                    
+                    toast(data.message);
+                    setTask(auxTask);
+                    break;
+            
+                case 'Fail':
+                    data.body.errors.forEach(element => {
+                        toast(element.text);
+                    });
+                    break;
+
+                default:
+                    Alert.alert(data.typeResponse, data.message);
+                    break;
+            }
+        }
+    }
+
+    const updateTaskTittle = async () => { 
+        if(!Field.checkFields([ newTask.tittle ])) {
+            Alert.alert('Empty Field', 'Please, write a tittle');
+        } else {
+            setLoading(true); 
+            const jsonAux = { id: newTask.id, tittle: newTask.tittle } 
+            const data = await Http.send('PUT', 'task/tittle', jsonAux);
+
+            if(!data) {
+                Alert.alert('Fatal Error', 'No data from server...');
+
+            } else { 
+                switch(data.typeResponse) {
+                    case 'Success': 
+                        toast(data.message);
+                        let taskAux = task.map((item) => {
+                            if(item.id == jsonAux.id) { return jsonAux; } 
+                            else { return item }
+                        });
+
+                        setTask(taskAux); 
+                        break;
+                
+                    case 'Fail':
+                        data.body.errors.forEach(element => {
+                            toast(element.text);
+                        });
+                        break;
+
+                    default:
+                        Alert.alert(data.typeResponse, data.message);
+                        break;
+                }
+            }
+
+            setLoading(false); 
+        }
+        
+        setModal({ ...modal, flag: false });
+    }
 
     const getTask = async() => {
         const id = route.params.id;
@@ -110,7 +268,7 @@ const ListDetail = ({ navigation, route }) => {
         }
     }
 
-    const submitNewTask = async () => { console.log('hablame:',task.length + 1);
+    const submitNewTask = async () => { 
         if(!Field.checkFields([ newTask.tittle ])) {
             Alert.alert('Empty Field', 'Please, write a tittle');
         
@@ -123,12 +281,15 @@ const ListDetail = ({ navigation, route }) => {
                 Alert.alert('Fatal Error', 'No data from server...');
     
             } else { 
-                switch(data.typeResponse) {
+                switch(data.typeResponse) { 
                     case 'Success': 
-                        toast(data.message);  
-                        setNewTask({ ...newTask, id: data.body.id });
-                        setTask([...task, newTask]);
-                        setNewTask({ tittle: '', position: task.length + 1 });
+                        toast(data.message); 
+                        let newTaskAux = { ...newTask, id: data.body.id }
+                        let taskAux = task;
+                        
+                        taskAux.unshift(newTaskAux); 
+                        setTask(taskAux);
+                        setNewTask({ tittle: '', id: 0, position: task.length + 1 });
                         break;
                 
                     case 'Fail':
@@ -146,7 +307,7 @@ const ListDetail = ({ navigation, route }) => {
             setLoading(false);
         }
         
-        setModal(!modal);
+        setModal({ ...modal, flag: false });
     }
 
 
@@ -156,19 +317,28 @@ const ListDetail = ({ navigation, route }) => {
     }, []);
     
     return (
-        <View style={styles.screen}>
+        <View style={homeStyles.container}>
             <Modal
                 animationType="slide"
                 transparent
-                visible={modal}
+                visible={modal.flag}
                 onRequestClose={() => {
-                    Alert.alert("New task has been canceled.");
-                    setModal(!modal);
+                    (modal.type == 'create') 
+                    ? Alert.alert('New task has been canceled.')
+                    : Alert.alert('Update task has been canceled.');
+
+                    setModal({ ...modal, flag: false });
                 }}
-                >
-                <View style={styles.centeredView}>
-                    <View style={styles.modalView}>
-                        <Text style={styles.modalText}>New task</Text>
+                > 
+                <View style={listDetailStyles.centeredView}>
+                    <View style={listDetailStyles.modalView}>
+                        <Text style={listDetailStyles.modalText}>
+                            { 
+                                (modal.type == 'create') 
+                                ? 'New task' 
+                                : `Update ${newTask.tittleForUpdate}'s task` 
+                            }
+                        </Text>
                         <TextInput
                             placeholder="Write the task's tittle"
                             style={{
@@ -178,92 +348,60 @@ const ListDetail = ({ navigation, route }) => {
                             }}
                             autoFocus
                             onChangeText={tittle => setNewTask({ ...newTask, tittle: tittle })}
-                            onSubmitEditing={() => submitNewTask()}
+                            onSubmitEditing={() => {
+                                (modal.type == 'create') 
+                                ? submitNewTask()
+                                : updateTaskTittle();
+                            }}
                         />
-                        <TouchableOpacity onPress={() => submitNewTask()} style={[styles.button, styles.buttonClose]}>      
+                        <TouchableOpacity 
+                            onPress={() => {
+                                (modal.type == 'create') 
+                                ? submitNewTask()
+                                : updateTaskTittle()
+                            }}
+                            style={[listDetailStyles.button, listDetailStyles.buttonClose]}
+                            >      
                             {
                                 (loading) 
                                 ? <ActivityIndicator size="small" color="#00ff00" /> 
-                                : <Text style={styles.textStyle}>Create task</Text>
+                                : (modal.type == 'create') 
+                                    ? <Text style={listDetailStyles.textStyle}> Create task </Text>
+                                    : <Text style={listDetailStyles.textStyle}> Update task </Text>
                             }
                         </TouchableOpacity>
                     </View>
                 </View>
             </Modal>
-            <TouchableOpacity onPress={() => setModal(true)} style={signInStyles.signIn}>      
-                <Text>New task</Text>   
-            </TouchableOpacity>
+
+            <View style={homeStyles.viewTittle}>
+                <Text style={homeStyles.textTtittle}>
+                    {route.params.tittle}
+                </Text>
+            </View>
+            <View style={homeStyles.header}>
+                <Text style={{ fontSize: 24 }}>
+                    Tasks
+                </Text>
+                    
+                <MaterialCommunityIcons 
+                    name="plus" 
+                    size={30} 
+                    style={homeStyles.buttonAdd}
+                    onPress={() => changeToCreateModel()} 
+                />   
+            </View>
+
             <View style={{ flex: 1 }}>
-                <DraggableFlatList
-                data={task}
-                renderItem={renderItem}
-                keyExtractor={(item, index) => index.toString()}
-                onDragEnd={({ data }) => setTask(data)}
+                <DraggableFlatList style={{ backgroundColor: '#f4f6fc' }}
+                    data={task}
+                    renderItem={renderItem}
+                    keyExtractor={(item, index) => index.toString()}
+                    onDragEnd={({ data }) => setTask(data)}
                 />
             </View>
         </View>     
     )
 }
 
-const styles = StyleSheet.create({
-        screen: {
-        marginTop: 24,
-        flex: 1,
-        backgroundColor: '#212121',
-    },
-    item: {
-        backgroundColor: 'white',
-        marginTop: 10,
-        padding: 20,
-        marginHorizontal: 10,
-        borderRadius: 10,
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-    },
-    centeredView: {
-        flex: 1,
-        justifyContent: "center",
-         alignItems: "center",
-         marginTop: 22
-    },
-    screen: {
-        marginTop: 24,
-        flex: 1,
-        backgroundColor: '#212121',
-    },
-    modalView: {
-      margin: 20,
-      backgroundColor: "white",
-      borderRadius: 20,
-      padding: 35,
-      alignItems: "center",
-      shadowColor: "#000",
-      shadowOffset: {
-        width: 0,
-        height: 2
-      },
-      shadowOpacity: 0.25,
-      shadowRadius: 4,
-      elevation: 5
-    },
-    button: {
-      borderRadius: 20,
-      padding: 10,
-      elevation: 2
-    },
-    buttonClose: {
-      backgroundColor: "#2196F3",
-    },
-    textStyle: {
-      color: "white",
-      fontWeight: "bold",
-      textAlign: "center"
-    },
-    modalText: {
-      marginBottom: 15,
-      textAlign: "center"
-    }
-});
-
 export default ListDetail
-  

@@ -37,8 +37,16 @@ const Home = ({ navigation, route }) => {
     }
 
     const changeToUpdateModel = (listItem) => {  
-        setNewList({...listItem, tittleForUpdate: listItem.tittle}); 
+        setNewList({ ...listItem, tittleForUpdate: listItem.tittle, tittle: '' }); 
         setModal({ type: 'update', flag: true }); 
+    }
+
+    const changeToCreateModel = () => {
+        let newListAux = newList;
+
+        newListAux.tittle = '';
+        setNewList(newListAux); 
+        setModal({ type: 'create', flag: true }); 
     }
 
     const alertForDelete = (listItem) => {
@@ -121,38 +129,44 @@ const Home = ({ navigation, route }) => {
     }
 
     const updateList = async () => { 
-        setLoading(true); 
-        const jsonAux = { background: newList.background, tittle: newList.tittle, id: newList.id }
-        const data = await Http.send('PUT', 'list', jsonAux);
+        if(!Field.checkFields([ newList.tittle ])) {
+            Alert.alert('Empty Field', 'Please, write a tittle');
+        
+        } else {
+            setLoading(true); 
+            const { tittleForUpdate, ...jsonAux } = newList;
+            const data = await Http.send('PUT', 'list', jsonAux);
 
-        if(!data) {
-            Alert.alert('Fatal Error', 'No data from server...');
+            if(!data) {
+                Alert.alert('Fatal Error', 'No data from server...');
 
-        } else { 
-            switch(data.typeResponse) {
-                case 'Success': 
-                    toast(data.message);
-                    let listAux = list.map((item) => {
-                        if(item.id == jsonAux.id) { return jsonAux; } 
-                        else { return item }
-                    });
+            } else { 
+                switch(data.typeResponse) {
+                    case 'Success': 
+                        toast(data.message);
+                        let listAux = list.map((item) => {
+                            if(item.id == jsonAux.id) { return jsonAux; } 
+                            else { return item }
+                        });
 
-                    setList(listAux); 
-                    break;
-            
-                case 'Fail':
-                    data.body.errors.forEach(element => {
-                        toast(element.text);
-                    });
-                    break;
+                        setList(listAux); 
+                        break;
+                
+                    case 'Fail':
+                        data.body.errors.forEach(element => {
+                            toast(element.text);
+                        });
+                        break;
 
-                default:
-                    Alert.alert(data.typeResponse, data.message);
-                    break;
+                    default:
+                        Alert.alert(data.typeResponse, data.message);
+                        break;
+                }
             }
+            setLoading(false); 
+        
         }
 
-        setLoading(false); 
         setModal({ ...modal, flag: false });
     }
 
@@ -199,10 +213,10 @@ const Home = ({ navigation, route }) => {
                 switch(data.typeResponse) {
                     case 'Success':  
                         toast(data.message);  
-                        setNewList({ ...newList, id: data.body.id });
+                        let newListAux = { ...newList, id: data.body.id }
+                        let listAux = list;
                         
-                        listAux = list;
-                        listAux.unshift(newList);
+                        listAux.unshift(newListAux);
                         setList(listAux);
                         setNewList({ id: 0, tittle: '', background: 'black', tittleForUpdate: '' });
                         break;
@@ -268,8 +282,7 @@ const Home = ({ navigation, route }) => {
                             onSubmitEditing={() => {
                                 (modal.type == 'create') 
                                 ? submitNewList()
-                                : Alert.alert('Update list has been canceled.');
-                                
+                                : updateList();
                             }}
                         />
                         <TouchableOpacity 
@@ -279,7 +292,7 @@ const Home = ({ navigation, route }) => {
                                 ? submitNewList()
                                 : updateList()
                             }}
-                        >      
+                            >      
                             {
                                 (loading) 
                                 ? <ActivityIndicator size="small" color="#00ff00" /> 
@@ -306,7 +319,7 @@ const Home = ({ navigation, route }) => {
                     name="plus" 
                     size={30} 
                     style={homeStyles.buttonAdd}
-                    onPress={() => setModal({ type: 'create', flag: true })} 
+                    onPress={() => changeToCreateModel()} 
                 />   
             </View>
             <ScrollView style={{ backgroundColor: '#f4f6fc' }}>
