@@ -7,13 +7,14 @@ import SignUp from './src/screens/signUp';
 import SignIn from './src/screens/signIn';
 import Dashboard from './src/screens/dashboard';
 import Task from './src/screens/Task';
-
+import DetailsTask from './src/screens/DetailsTask';
 const Stack = createStackNavigator();
 
 export default function App() {
   return (
     <NavigationContainer>
       <Stack.Navigator>
+        <Stack.Screen name="DetailsTask" component={DetailsTask} options={{ title: "DetailsTask", headerShown: false }}></Stack.Screen>
         <Stack.Screen name="Task" component={Task} options={{ title: "Task", headerShown: false }}></Stack.Screen>
         <Stack.Screen options={{ headerShown: false }} name="Dashboard" component={Dashboard}></Stack.Screen>
         <Stack.Screen name="SignUp" component={SignUp} options={{ title: "Sign Up", headerShown: false }}></Stack.Screen>
