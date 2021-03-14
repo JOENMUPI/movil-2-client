@@ -20,6 +20,7 @@ export const signInStyles = StyleSheet.create({
         flexDirection: "row",
         borderWidth: 1,
         borderRadius: 5,
+        borderColor: "gray",
         paddingHorizontal: 15,
         paddingVertical: 10,
         alignItems: "center",
@@ -27,6 +28,7 @@ export const signInStyles = StyleSheet.create({
     },
     textInput: {
         flex: 1,
+        color: "gray",
         paddingLeft: 10
     },
     forgotPassword: {
@@ -54,6 +56,7 @@ export const signInStyles = StyleSheet.create({
         justifyContent: "center"
     },
     textSignUp: {
+        color: "gray",
         textAlign: "center"
     }
 })

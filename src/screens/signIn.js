@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, ToastAndroid, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
 import AsyncStorage from '@react-native-community/async-storage';
-import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
+
+import { Icon } from 'react-native-elements'
 
 import Field from '../components/Field';
 import Http from '../components/Http';
@@ -9,10 +10,8 @@ import Http from '../components/Http';
 import { signInStyles } from '../styles/screens/signIn';
 
 
-
 const SignIn = ({ navigation }) => {
     const [user, setUser] = useState({ email: '', password: '' });
-    const [borderColor, setBorderColor] = useState(null);
     const [loading, setLoading] = useState(false);
 
     let passInput = '';
@@ -28,7 +27,7 @@ const SignIn = ({ navigation }) => {
             if(!data) {
                 Alert.alert('Fatal Error', 'No data from server...');
                 
-            } else {
+            } else { 
                 switch(data.typeResponse) {
                     case 'Success':  
                         await AsyncStorage.setItem("user", JSON.stringify(data.body[0]));
@@ -55,10 +54,6 @@ const SignIn = ({ navigation }) => {
         setLoading(false);
     }
 
-    const onFocus = value => {
-        setBorderColor(value);
-    }
-
     const removeUser = async () => {
         await AsyncStorage.removeItem('user');
     }
@@ -72,37 +67,27 @@ const SignIn = ({ navigation }) => {
             <Text style={signInStyles.title}>Sign In</Text>
             <Text style={signInStyles.subtitle}>Sign In with Email and Password</Text>
             <View>
-                <View style={[signInStyles.section, {
-                    borderColor: borderColor == "email" ? "#3465d9" : "gray"
-                }]}>
-                    <MaterialIcons name="email" size={20} color={borderColor == "email" ? "#3465d9" : "gray"} />
+                <View style={signInStyles.section}>
+                    <Icon name='at-outline' color='gray' type='ionicon' size={20} />
                     <TextInput
                         placeholder="Email"
                         autoCapitalize="none"
                         keyboardType={'email-address'}
                         blurOnSubmit={false}
-                        style={[signInStyles.textInput, {
-                            color: borderColor == "email" ? "#3465d9" : "gray"
-                        }]}
+                        style={signInStyles.textInput}
                         autoFocus
-                        //onFocus={() => onFocus("email")}
                         onChangeText={email => setUser({ ...user, email: email })}
                         onSubmitEditing={() => passInput.focus()}
                     />
                 </View>
-                <View style={[signInStyles.section, {
-                    borderColor: borderColor == "password" ? "#3465d9" : "gray"
-                }]}>
-                    <MaterialIcons name="lock-outline" size={20} color={borderColor == "password" ? "#3465d9" : "gray"} />
+                <View style={signInStyles.section}>
+                    <Icon name='lock-closed-outline' color='gray' type='ionicon' size={20} />
                     <TextInput
                         ref={input => passInput = input}
                         placeholder="Password"
                         autoCapitalize="none"
-                        style={[signInStyles.textInput, {
-                            color: borderColor == "password" ? "#3465d9" : "gray"
-                        }]}
+                        style={signInStyles.textInput}
                         secureTextEntry
-                        //onFocus={() => onFocus("password")}
                         onChangeText={password => setUser({ ...user, password: password })}
                     />
                 </View>
@@ -116,14 +101,15 @@ const SignIn = ({ navigation }) => {
                 }
             </TouchableOpacity>
             <View style={signInStyles.signUp}>
-                <Text style={[signInStyles.textSignUp, {
-                    color: "gray"
-                }]}>Don't have an account?</Text>
+                <Text style={signInStyles.textSignUp}>
+                    Don't have an account?
+                </Text>
                 <TouchableOpacity onPress={() => navigation.navigate("SignUp")}>
-                    <Text style={[signInStyles.textSignUp, {
-                        color: "#3465d9",
-                        marginLeft: 3
-                    }]}>Sign Up</Text>
+                    <Text 
+                        style={[ signInStyles.textSignUp, { color: "#3465d9", marginLeft: 3 } ]}
+                        >
+                        Sign Up
+                    </Text>
                 </TouchableOpacity>
             </View>
         </View>

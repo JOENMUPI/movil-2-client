@@ -12,14 +12,13 @@ import {
 } from 'react-native';
 import Animated from 'react-native-reanimated';
 
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { Icon } from 'react-native-elements'
 import DraggableFlatList from 'react-native-draggable-flatlist';
 import SwipeableItem from 'react-native-swipeable-item';
 
 import Field from '../components/Field';
 import Http from '../components/Http';
 
-import { homeStyles } from '../styles/screens/home';
 import { listDetailStyles } from '../styles/screens/listDetail';
 
 
@@ -64,18 +63,19 @@ const ListDetail = ({ navigation, route }) => {
                 { text: "OK", onPress: () => deleteTask(taskItem) }
     
             ], { cancelable: false }
-          );
+        );
     } 
 
     const renderUnderlayLeft = ({ item, percentOpen, close }) => (
         <Animated.View style={[ listDetailStyles.backRow, listDetailStyles.underlayLeft, { opacity: percentOpen } ]}>
-            <TouchableOpacity onPress={() => alertForDelete(item)} onPressOut={close}>
-                <MaterialCommunityIcons
-                    name={'trash-can'}
-                    size={30}
-                    style={{ color: 'black', marginRight: 5 }} 
-                />
-            </TouchableOpacity>
+            <Icon 
+                name='trash' 
+                color='black' 
+                type='ionicon' 
+                size={30} 
+                onPress={() => alertForDelete(item)}
+                onPressOut={close}
+            />
         </Animated.View>
     )
 
@@ -84,13 +84,14 @@ const ListDetail = ({ navigation, route }) => {
             <Animated.View
                 style={[{ transform: [{ translateX: multiply(sub(1, percentOpen), -100) }] }]}
                 >
-                <TouchableOpacity onPress={() => handlePriority(item.id)} onPressOut={close}>
-                    <MaterialCommunityIcons
-                        name={'bell'}
-                        size={30}
-                        style={{ color: 'black' }} 
-                    />
-                </TouchableOpacity>
+                <Icon 
+                    name='notifications' 
+                    color='black' 
+                    type='ionicon' 
+                    size={30} 
+                    onPress={() => handlePriority(item.id)}
+                    onPressOut={close}
+                />
             </Animated.View>
         </View>
     )
@@ -159,14 +160,14 @@ const ListDetail = ({ navigation, route }) => {
                 <View style={listDetailStyles.row}>
                     <TouchableOpacity onLongPress={drag} onPress={() => navigation.navigate('TaskDetail', item)}>
                         <Text style={listDetailStyles.text}>{item.tittle}</Text>
-                       
-                    </TouchableOpacity>   
-                    <MaterialCommunityIcons
-                        name={'pencil'}
-                        size={30}
-                        style={{ color: 'blue' }} 
+                    </TouchableOpacity> 
+                    <Icon 
+                        name='pencil' 
+                        color='#1e90ff' 
+                        type='ionicon' 
+                        size={30} 
                         onPress={() => changeToUpdateModel(item)}
-                    /> 
+                    />  
                 </View>
             </View>
         </SwipeableItem>
@@ -317,7 +318,7 @@ const ListDetail = ({ navigation, route }) => {
     }, []);
     
     return (
-        <View style={homeStyles.container}>
+        <View style={listDetailStyles.container}>
             <Modal
                 animationType="slide"
                 transparent
@@ -374,22 +375,24 @@ const ListDetail = ({ navigation, route }) => {
                 </View>
             </Modal>
 
-            <View style={homeStyles.viewTittle}>
-                <Text style={homeStyles.textTtittle}>
+            <View style={listDetailStyles.viewTittle}>
+                <Text style={listDetailStyles.textTtittle}>
                     {route.params.tittle}
                 </Text>
             </View>
-            <View style={homeStyles.header}>
+            <View style={listDetailStyles.header}>
                 <Text style={{ fontSize: 24 }}>
                     Tasks
                 </Text>
-                    
-                <MaterialCommunityIcons 
-                    name="plus" 
-                    size={30} 
-                    style={homeStyles.buttonAdd}
-                    onPress={() => changeToCreateModel()} 
-                />   
+                <View style={listDetailStyles.buttonAdd}>
+                    <Icon 
+                        name='add' 
+                        color='#1e90ff' 
+                        type='ionicon' 
+                        size={30} 
+                        onPress={() => changeToCreateModel()}
+                    />
+                </View>   
             </View>
 
             <View style={{ flex: 1 }}>

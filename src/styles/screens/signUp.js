@@ -18,6 +18,7 @@ export const signUpStyles = StyleSheet.create({
     },
     section: {
         flexDirection: "row",
+        borderColor: "gray",
         borderWidth: 1,
         borderRadius: 5,
         paddingHorizontal: 15,
@@ -27,6 +28,7 @@ export const signUpStyles = StyleSheet.create({
     },
     textInput: {
         flex: 1,
+        color: "gray",
         paddingLeft: 10
     },
     forgotPassword: {
@@ -49,6 +51,7 @@ export const signUpStyles = StyleSheet.create({
         borderRadius: 50
     },
     signUp: {
+        color: "gray",
         marginTop: 25,
         flexDirection: "row",
         justifyContent: "center"

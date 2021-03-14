@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, ToastAndroid, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
 import AsyncStorage from '@react-native-community/async-storage';
-import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
+
+import { Icon } from 'react-native-elements'
 
 import Field from '../components/Field';
 import Http from '../components/Http';
@@ -10,7 +11,6 @@ import { signUpStyles } from '../styles/screens/signUp';
 
 const SignUp = ({ navigation }) => {
     const [user, setUser] = useState({ email: '', password: '', name: '', confirmPassword: '' });
-    const [borderColor, setBorderColor] = useState(null);
     const [loading, setLoading] = useState(false);
     
     let passInput = '';
@@ -57,10 +57,6 @@ const SignUp = ({ navigation }) => {
         setLoading(false);
     }
 
-    const onFocus = value => {
-        setBorderColor(value);
-    }
-
     const removeUser = async () => {
         await AsyncStorage.removeItem('user');
     }
@@ -74,72 +70,52 @@ const SignUp = ({ navigation }) => {
             <Text style={signUpStyles.title}>Sign Up</Text>
             <Text style={signUpStyles.subtitle}>Sign Up with Email and Password</Text>
             <View>
-                <View style={[signUpStyles.section, {
-                    borderColor: borderColor == "name" ? "#3465d9" : "gray"
-                }]}>
-                    <MaterialIcons name="person" size={20} color={borderColor == "name" ? "#3465d9" : "gray"} />
+                <View style={signUpStyles.section}>
+                    <Icon name='person-outline' color='gray' type='ionicon' size={20} />
                     <TextInput
                         placeholder="Name"
                         blurOnSubmit={false}
-                        style={[signUpStyles.textInput, {
-                            color: borderColor == "name" ? "#3465d9" : "gray"
-                        }]}
+                        style={signUpStyles.textInput}
                         autoFocus
-                        //onFocus={(x) => onFocus("name")}
                         onChangeText={name => setUser({ ...user, name: name })}
                         onSubmitEditing={() => emailInput.focus()}
                     />
                 </View>
-                <View style={[signUpStyles.section, {
-                    borderColor: borderColor == "email" ? "#3465d9" : "gray"
-                }]}>
-                    <MaterialIcons name="email" size={20} color={borderColor == "email" ? "#3465d9" : "gray"} />
+                <View style={signUpStyles.section}>
+                    <Icon name='at-outline' color='gray' type='ionicon' size={20} />
                     <TextInput
                         ref={input => emailInput = input}
                         placeholder="Email"
                         autoCapitalize="none"
                         keyboardType={'email-address'}
                         blurOnSubmit={false}
-                        style={[signUpStyles.textInput, {
-                            color: borderColor == "email" ? "#3465d9" : "gray"
-                        }]}
-                        //onFocus={() => onFocus("email")}
+                        style={signUpStyles.textInput}
                         onChangeText={email => setUser({ ...user, email: email })}
                         onSubmitEditing={() => passInput.focus()}
                     />
                 </View>
-                <View style={[signUpStyles.section, {
-                    borderColor: borderColor == "password" ? "#3465d9" : "gray"
-                }]}>
-                    <MaterialIcons name="lock-outline" size={20} color={borderColor == "password" ? "#3465d9" : "gray"} />
+                <View style={signUpStyles.section}>
+                    <Icon name='lock-closed-outline' color='gray' type='ionicon' size={20} />
                     <TextInput
                         ref={input => passInput = input}
                         placeholder="Password"
                         autoCapitalize="none"
                         blurOnSubmit={false}
-                        style={[signUpStyles.textInput, {
-                            color: borderColor == "password" ? "#3465d9" : "gray"
-                        }]}
+                        style={signUpStyles.textInput}
                         secureTextEntry
-                        //onFocus={() => onFocus("password")}
                         onChangeText={password => setUser({ ...user, password: password })}
                         onSubmitEditing={() => pass2Input.focus()}
                     />
                 </View>
-                <View style={[signUpStyles.section, {
-                    borderColor: borderColor == "confirmPassword" ? "#3465d9" : "gray"
-                }]}>
-                    <MaterialIcons name="lock-outline" size={20} color={borderColor == "confirmPassword" ? "#3465d9" : "gray"} />
+                <View style={signUpStyles.section}>
+                    <Icon name='lock-closed-outline' color='gray' type='ionicon' size={20} />
                     <TextInput
                         ref={input => pass2Input = input}
                         placeholder="Confirm Password"
                         autoCapitalize="none"
                         blurOnSubmit={false}
-                        style={[signUpStyles.textInput, {
-                            color: borderColor == "confirmPassword" ? "#3465d9" : "gray"
-                        }]}
+                        style={signUpStyles.textInput}
                         secureTextEntry
-                        //onFocus={() => onFocus("confirmPassword")}
                         onChangeText={password => setUser({ ...user, confirmPassword: password })}
                         onSubmitEditing={() => submitSignUp()}
                     />
@@ -154,14 +130,15 @@ const SignUp = ({ navigation }) => {
                 }
             </TouchableOpacity>
             <View style={signUpStyles.signUp}>
-                <Text style={[signUpStyles.textSignUp, {
-                    color: "gray"
-                }]}>Already have an account?</Text>
+                <Text style={signUpStyles.textSignUp}>
+                    Already have an account?
+                </Text>
                 <TouchableOpacity onPress={() => navigation.navigate("SignIn")}>
-                    <Text style={[signUpStyles.textSignUp, {
-                        color: "#3465d9",
-                        marginLeft: 3
-                    }]}>Sign In</Text>
+                    <Text 
+                        style={[ signUpStyles.textSignUp, { color: "#3465d9", marginLeft: 3 } ]}
+                        >
+                        Sign In
+                    </Text>
                 </TouchableOpacity>
             </View>
         </View>

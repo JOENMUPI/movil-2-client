@@ -12,7 +12,7 @@ import {
     ScrollView 
 } from 'react-native';
 
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { Icon } from 'react-native-elements'
 
 import Field from '../components/Field';
 import Http from '../components/Http';
@@ -65,12 +65,13 @@ const Home = ({ navigation, route }) => {
         return (
             <View style={[ homeStyles.viewList, { allignItems: "center" } ]}>
                 <TouchableOpacity onPress={() => navigation.navigate('ListDetail', data)} style={{ flexDirection: "row" }}>
-                    <MaterialCommunityIcons
-                        name={'text'}
-                        size={30}
-                        style={{ color: theme, marginRight: 5 }} 
+                    <Icon 
+                        name='list-outline' 
+                        color={theme} 
+                        type='ionicon' 
+                        size={30} 
+                        style={{ marginRight: 5 }}
                     />
-
                     <View>
                         <Text style={{ fontSize: 16 }}>
                             {tittle}
@@ -81,18 +82,21 @@ const Home = ({ navigation, route }) => {
                     </View>
                 </TouchableOpacity>
     
-                <View style={{ flexDirection: "row", }}>
-                    <MaterialCommunityIcons
+                <View style={{ flexDirection: "row" }}>
+                    <Icon 
+                        name='pencil' 
+                        color='#1e90ff' 
+                        type='ionicon' 
+                        size={30} 
+                        style={{ marginRight: 10 }}
                         onPress={() => changeToUpdateModel(data)}
-                        name="pencil"
-                        size={30}
-                        style={{ color: '#1e90ff' }} 
                     />
-                    <MaterialCommunityIcons
+                    <Icon 
+                        name='trash' 
+                        color='red' 
+                        type='ionicon' 
+                        size={30} 
                         onPress={() => alertForDelete(data)}
-                        name="trash-can"
-                        size={30}
-                        style={{ color: 'red', marginLeft: 10 }} 
                     />
                 </View>
             </View>
@@ -238,9 +242,7 @@ const Home = ({ navigation, route }) => {
         
         setModal({ ...modal, flag: false });
     }
-
     
-
 
     // Ggwp
     useEffect(() => {
@@ -314,13 +316,16 @@ const Home = ({ navigation, route }) => {
             <View style={homeStyles.header}>
                 <Text style={{ fontSize: 24 }}>
                     Lists
-                </Text>    
-                <MaterialCommunityIcons 
-                    name="plus" 
-                    size={30} 
-                    style={homeStyles.buttonAdd}
-                    onPress={() => changeToCreateModel()} 
-                />   
+                </Text>  
+                <View style={homeStyles.buttonAdd} >
+                    <Icon 
+                        name='add-outline' 
+                        color='#1e90ff' 
+                        type='ionicon' 
+                        size={30} 
+                        onPress={() => changeToCreateModel()}
+                    />
+                </View>    
             </View>
             <ScrollView style={{ backgroundColor: '#f4f6fc' }}>
                 { 
