@@ -9,12 +9,15 @@ import Dashboard from './src/screens/dashboard';
 import Task from './src/screens/Task';
 import DetailsTask from './src/screens/DetailsTask';
 import SearchBar from './src/screens/SearchBar';
+import Home from './src/screens/Home';
+
 const Stack = createStackNavigator();
 
 export default function App() {
   return (
     <NavigationContainer>
       <Stack.Navigator>
+        <Stack.Screen name="Home" component={Home} options={{ title: "Home", headerShown: false }}></Stack.Screen>
         <Stack.Screen name="SearchBar" component={SearchBar} options={{ title: "SearchBar", headerShown: false }}></Stack.Screen>
         <Stack.Screen name="DetailsTask" component={DetailsTask} options={{ title: "DetailsTask", headerShown: false }}></Stack.Screen>
         <Stack.Screen name="Task" component={Task} options={{ title: "Task", headerShown: false }}></Stack.Screen>

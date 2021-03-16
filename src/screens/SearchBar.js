@@ -1,105 +1,109 @@
-
-import React, { useState, useEffect } from 'react';
-
-
-import { SafeAreaView, Text, StyleSheet, View, FlatList } from 'react-native';
+import React, { Component } from 'react';
+import { View, Text, FlatList, TextInput, ListItem } from 'react-native';
 import { SearchBar } from 'react-native-elements';
 
-const SearchBars = () => {
-    const [search, setSearch] = useState('');
-    const [filteredDataSource, setFilteredDataSource] = useState([]);
-    const [masterDataSource, setMasterDataSource] = useState([]);
 
-    useEffect(() => {
-        fetch('https://jsonplaceholder.typicode.com/posts')
-            .then((response) => response.json())
-            .then((responseJson) => {
-                setFilteredDataSource(responseJson);
-                setMasterDataSource(responseJson);
-            })
-            .catch((error) => {
-                console.error(error);
-            });
-    }, []);
+class SearchBars extends Component {
+    constructor(props) {
+        super(props);
 
-    const searchFilterFunction = (text) => {
+        this.state = {
+            data: [],
+            value: '',
+        };
 
-        if (text) {
+        this.arrayNew = [
+            { name: 'ir a comprar ' },
+            { name: 'vender' },
+            { name: 'comer ' },
+            { name: 'Tristan' },
+            { name: 'Marie' },
+            { name: 'Onni' },
+            { name: 'sophie' },
+            { name: 'Brad' },
+            { name: 'Samual' },
+            { name: 'Omur' },
+            { name: 'Ower' },
+            { name: 'Awery' },
+            { name: 'Ann' },
+            { name: 'Jhone' },
+            { name: 'z' },
+            { name: 'bb' },
+            { name: 'cc' },
+            { name: 'd' },
+            { name: 'e' },
+            { name: 'f' },
+            { name: 'g' },
+            { name: 'h' },
+            { name: 'i' },
+            { name: 'j' },
+            { name: 'k' },
+            { name: 'l' },
+        ];
+    }
 
-            const newData = masterDataSource.filter(function (item) {
-                const itemData = item.title
-                    ? item.title.toUpperCase()
-                    : ''.toUpperCase();
-                const textData = text.toUpperCase();
-                return itemData.indexOf(textData) > -1;
-            });
-            setFilteredDataSource(newData);
-            setSearch(text);
-        } else {
-
-            setFilteredDataSource(masterDataSource);
-            setSearch(text);
-        }
-    };
-
-    const ItemView = ({ item }) => {
-        return (
-
-            <Text style={styles.itemStyle} onPress={() => getItem(item)}>
-                {item.id}
-                {'.'}
-                {item.title.toUpperCase()}
-            </Text>
-        );
-    };
-
-    const ItemSeparatorView = () => {
+    renderSeparator = () => {
         return (
 
             <View
                 style={{
-                    height: 0.5,
+                    height: 1,
                     width: '100%',
-                    backgroundColor: '#C8C8C8',
+                    backgroundColor: '#CED0CE',
                 }}
             />
         );
     };
 
-    const getItem = (item) => {
-
-        alert('Id : ' + item.id + ' Title : ' + item.title);
+    searchItems = text => {
+        const newData = this.arrayNew.filter(item => {
+            const itemData = `${item.name.toUpperCase()}`;
+            const textData = text.toUpperCase();
+            return itemData.indexOf(textData) > -1;
+        });
+        this.setState({
+            data: newData,
+            value: text,
+        });
     };
 
-    return (
-        <SafeAreaView style={{ flex: 1 }}>
-            <View style={styles.container}>
-                <SearchBar
-                    round
-                    searchIcon={{ size: 24 }}
-                    onChangeText={(text) => searchFilterFunction(text)}
-                    onClear={(text) => searchFilterFunction('')}
-                    placeholder="Type Here..."
-                    value={search}
-                />
+    renderHeader = () => {
+        return (
+
+            <SearchBar
+                style={{ height: 60, borderColor: '#000', borderWidth: 1 }}
+                placeholder="   Type Here...Key word"
+                onChangeText={text => this.searchItems(text)}
+                value={this.state.value}
+            />
+        );
+    };
+
+    render() {
+        return (
+
+            <View
+                style={{
+                    flex: 1,
+                    padding: 25,
+                    width: '98%',
+                    alignSelf: 'center',
+                    justifyContent: 'center',
+                }}>
+
+
                 <FlatList
-                    data={filteredDataSource}
-                    keyExtractor={(item, index) => index.toString()}
-                    ItemSeparatorComponent={ItemSeparatorView}
-                    renderItem={ItemView}
+                    data={this.state.data}
+                    renderItem={({ item }) => (
+                        <Text style={{ padding: 10 }}>{item.name} </Text>
+                    )}
+                    keyExtractor={item => item.name}
+                    ItemSeparatorComponent={this.renderSeparator}
+                    ListHeaderComponent={this.renderHeader}
                 />
             </View>
-        </SafeAreaView>
-    );
-};
-
-const styles = StyleSheet.create({
-    container: {
-        backgroundColor: 'white',
-    },
-    itemStyle: {
-        padding: 10,
-    },
-});
+        );
+    }
+}
 
 export default SearchBars;
