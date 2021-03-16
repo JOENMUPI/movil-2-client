@@ -56,14 +56,7 @@ const SignUp = ({ navigation }) => {
 
         setLoading(false);
     }
-
-    const removeUser = async () => {
-        await AsyncStorage.removeItem('user');
-    }
-
-    useEffect(async () => {
-        removeUser();
-    }, []);
+    
 
     return (
         <View style={signUpStyles.container}>

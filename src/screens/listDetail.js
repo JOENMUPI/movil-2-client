@@ -8,11 +8,11 @@ import {
     ActivityIndicator, 
     Modal, 
     TextInput, 
-    CheckBox, 
+ 
 } from 'react-native';
 import Animated from 'react-native-reanimated';
 
-import { Icon } from 'react-native-elements'
+import { Icon, CheckBox } from 'react-native-elements'
 import DraggableFlatList from 'react-native-draggable-flatlist';
 import SwipeableItem from 'react-native-swipeable-item';
 
@@ -22,7 +22,7 @@ import Http from '../components/Http';
 import { listDetailStyles } from '../styles/screens/listDetail';
 
 
-const ListDetail = ({ navigation, route }) => {
+const ListDetail = ({ navigation, route }) => { 
     const [task, setTask] = useState([]);
     const [modal, setModal] = useState({ type: 'create', flag: false });
     const [loading, setLoading] = useState(false);
@@ -85,11 +85,11 @@ const ListDetail = ({ navigation, route }) => {
                 style={[{ transform: [{ translateX: multiply(sub(1, percentOpen), -100) }] }]}
                 >
                 <Icon 
-                    name='notifications' 
+                    name='pencil' 
                     color='black' 
                     type='ionicon' 
                     size={30} 
-                    onPress={() => handlePriority(item.id)}
+                    onPress={() => changeToUpdateModel(item)}
                     onPressOut={close}
                 />
             </Animated.View>
@@ -110,11 +110,9 @@ const ListDetail = ({ navigation, route }) => {
         }
     }
 
-    const handleCheck = (id) => {
-        let updated = [...task];
-        
-        updated = updated.map((taskItem, index) => { 
-            if (id === taskItem.id) { 
+    const handleCheck = (item) => {
+        let updated = task.map((taskItem) => { 
+            if (item.id === taskItem.id) { 
                 return { ...taskItem, check: !taskItem.check };
             }
 
@@ -122,13 +120,12 @@ const ListDetail = ({ navigation, route }) => {
         });
 
         setTask(updated);
+        updateCheck(item);
     }
 
-    const handlePriority = (id) => {
-        let updated = [...task];
-    
-        updated = updated.map((taskItem, index) => { 
-            if (id === taskItem.id) { 
+    const handlePriority = (item) => {
+        let updated = task.map((taskItem) => { 
+            if (item.id === taskItem.id) { 
                 return { ...taskItem, priority: !taskItem.priority };
             }
 
@@ -136,10 +133,27 @@ const ListDetail = ({ navigation, route }) => {
         });
 
         setTask(updated);
+        updatePriority(item);
     }
 
+    const basicHandlerResponse = (data) => {
+        switch(data.typeResponse) { 
+            case 'Success': 
+                toast(data.message); 
+                break;
+        
+            case 'Fail':
+                data.body.errors.forEach(element => {
+                    toast(element.text);
+                });
+                break;
 
-    // Logic
+            default:
+                Alert.alert(data.typeResponse, data.message);
+                break;
+        }
+    }
+
     const renderItem = ({ item, index, drag }) => (
         <SwipeableItem
             key={item.key}
@@ -154,25 +168,26 @@ const ListDetail = ({ navigation, route }) => {
             >
             <View style={listDetailStyles.item}>
                 <CheckBox
-                    value={item.check}
-                    onChange={() => handleCheck(item.id)}
+                    checked={item.check}
+                    onPress={() => handleCheck(item)}
                 />
                 <View style={listDetailStyles.row}>
                     <TouchableOpacity onLongPress={drag} onPress={() => navigation.navigate('TaskDetail', item)}>
                         <Text style={listDetailStyles.text}>{item.tittle}</Text>
                     </TouchableOpacity> 
-                    <Icon 
-                        name='pencil' 
-                        color='#1e90ff' 
-                        type='ionicon' 
-                        size={30} 
-                        onPress={() => changeToUpdateModel(item)}
+                    <CheckBox
+                        checkedIcon={<Icon name='star' color='gold' type='ionicon' size={20}/>}
+                        uncheckedIcon={<Icon name='star-outline' color='grey' type='ionicon' size={20}/>}
+                        checked={item.priority}
+                        onPress={() => handlePriority(item)}
                     />  
                 </View>
             </View>
         </SwipeableItem>
     )
 
+
+    // Logic
     const deleteTask = async (taskItem) => {
         const data = await Http.send('DELETE', `task/${taskItem.id}`, null);
         
@@ -201,9 +216,28 @@ const ListDetail = ({ navigation, route }) => {
         }
     }
 
+    const updatePriority = async (item) => {
+        const jsonAux = { type: 'priority', id: item.id, field: !item.priority };
+        const data = await Http.send('PUT', 'task/field', jsonAux);
+
+        (!data) 
+        ? Alert.alert('Fatal Error', 'No data from server...')
+        : basicHandlerResponse(data);
+    }
+
+    const updateCheck = async (item) => { 
+        const jsonAux = { type: 'check', id: item.id, field: !item.check };
+        const data = await Http.send('PUT', 'task/field', jsonAux);
+
+        (!data) 
+        ? Alert.alert('Fatal Error', 'No data from server...')
+        : basicHandlerResponse(data);
+    }
+
     const updateTaskTittle = async () => { 
         if(!Field.checkFields([ newTask.tittle ])) {
             Alert.alert('Empty Field', 'Please, write a tittle');
+        
         } else {
             setLoading(true); 
             const jsonAux = { id: newTask.id, field: newTask.tittle, type: 'tittle' } 
@@ -217,8 +251,12 @@ const ListDetail = ({ navigation, route }) => {
                     case 'Success': 
                         toast(data.message);
                         let taskAux = task.map((item) => {
-                            if(item.id == jsonAux.id) { return jsonAux; } 
-                            else { return item }
+                            if(item.id == jsonAux.id) { 
+                                return { ...item, tittle: newTask.tittle } 
+                            
+                            } else { 
+                                return item; 
+                            }
                         });
 
                         setTask(taskAux); 

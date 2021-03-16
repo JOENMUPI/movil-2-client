@@ -53,14 +53,7 @@ const SignIn = ({ navigation }) => {
 
         setLoading(false);
     }
-
-    const removeUser = async () => {
-        await AsyncStorage.removeItem('user');
-    }
-
-    useEffect(async () => {
-        removeUser();
-    }, []);
+    
 
     return (
         <View style={signInStyles.container}>
@@ -89,11 +82,12 @@ const SignIn = ({ navigation }) => {
                         style={signInStyles.textInput}
                         secureTextEntry
                         onChangeText={password => setUser({ ...user, password: password })}
+                        onSubmitEditing={submitSignIn}
                     />
                 </View>
             </View>
             
-            <TouchableOpacity onPress={() => submitSignIn()} style={signInStyles.signIn}>
+            <TouchableOpacity onPress={submitSignIn} style={signInStyles.signIn}>
                 {
                     (loading) 
                     ? <ActivityIndicator size="small" color="#00ff00" /> 

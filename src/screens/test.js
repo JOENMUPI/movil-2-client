@@ -1,148 +1,181 @@
-import React, { useState } from 'react';
+import Constants from 'expo-constants';
+import * as Notifications from 'expo-notifications';
+import React, { useState, useEffect, useRef } from 'react';
+import { Text, View, Button, Platform } from 'react-native';
+
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldPlaySound: false,
+    shouldSetBadge: false,
+  }),
+});
+
+export default function App() {
+  const [expoPushToken, setExpoPushToken] = useState('');
+
+  useEffect(() => {  
+    handlePushNotifications();
+  }, []);
+
+  const handlePushNotifications = async () => { 
+    const { status: existingStatus } = await Notifications.getPermissionsAsync();
+    let finalStatus = existingStatus; 
+
+    if (existingStatus !== 'granted') {
+        const { status } = await Notifications.requestPermissionsAsync();
+        finalStatus = status;
+    }
+
+    if (finalStatus !== 'granted') {
+        alert('Failed to get push token for push notification!');
+        return;
+    }
+
+    if (Platform.OS == 'android') {
+        Notifications.setNotificationChannelAsync(
+            'default', 
+            {
+                name: 'default',
+                importance: Notifications.AndroidImportance.MAX,
+                vibrationPattern: [0, 250, 250, 250],
+                lightColor: '#FF231F7C',
+            }
+        );
+    }
+
+    const token = (await Notifications.getExpoPushTokenAsync()).data;
+
+    (token) 
+    ? setExpoPushToken(token) 
+    : alert('No token!');
+  }
+
+  return (
+    <View
+      style={{
+        flex: 1,
+        alignItems: 'center',
+        justifyContent: 'space-around',
+      }}>
+      <Button
+        title="Press to schedule a notification"
+        onPress={async () => {
+          await schedulePushNotification(new Date());
+        }}
+      />
+      <Button
+        title="XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXx"
+        onPress={async () => { await x(); }}
+      />
+    </View>
+  );
+}
+
+const x = async () => {
+    const dateString = "21/01/2021"; // Jan 21
+console.log('_____________________');
+console.log(new Date());
+    const trigger = new Date(); console.log('arriba', trigger);
+    //trigger.setMinutes(0);
+    trigger.setSeconds(trigger.getSeconds()+5);
+    console.log('segundos', trigger.getSeconds() +2 );
+    console.log('hora', trigger.getTime() );
+    
+    console.log('abajo', trigger);
+
+    await Notifications.scheduleNotificationAsync({
+        content: {
+            title: 'Happy new hour!',
+        },
+        trigger,
+    });
+ }
+
+const schedulePushNotification = async (tittle, body, trigger) => {
+    await Notifications.scheduleNotificationAsync({
+        content: {
+            title: "📬We don't have any more time!",
+            body: 'There is little left until this task expires!'
+        }, 
+        trigger,
+    });
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/*import React, { useState } from 'react';
 import {
     StyleSheet,
     Text,
     TouchableOpacity,
     View,
-    LayoutAnimation,
-    CheckBox,
 } from 'react-native';
-import Animated from 'react-native-reanimated';
 
-import { MaterialCommunityIcons } from '@expo/vector-icons';
-import DraggableFlatList from 'react-native-draggable-flatlist';
-import SwipeableItem from 'react-native-swipeable-item';
+import * as Notifications from 'expo-notifications';
 
-const NUM_ITEMS = 20;
-const getColor = (i) => {
-    const multiplier = 255 / (NUM_ITEMS - 1);
-    const colorVal = i * multiplier;
-    return `rgb(${colorVal}, ${Math.abs(128 - colorVal)}, ${255 - colorVal})`;
-}
-
-const initialData = [...Array(NUM_ITEMS)].fill(0).map((d, index) => {
-    const backgroundColor = getColor(index);
-    
-    return {
-        text: `ROW ${index}`,
-        key: `key-${backgroundColor}`,
-    }
-})
 
 export default function Basic() {
-    const [listData, setListData] = useState(initialData);
+    const [data, setData] = useState();
 
-    let itemRefs = new Map();
-    const { multiply, sub } = Animated;
-
-    const deleteItem = (item) => {
-        const updatedData = listData.filter(i => i !== item);
-
-        LayoutAnimation.configureNext(LayoutAnimation.Presets.spring);
-        setListData(updatedData);
+    const test = async() => {
+        let experienceId = '@username/example';
+        const expoPushToken = await Notifications.getExpoPushTokenAsync({ experienceId });
+        console.log('??????', expoPushToken)
+        // Prepare the notification channel
+        Notifications.setNotificationChannelAsync('new-emails', {
+            name: 'E-mail notifications',
+            importance: Notifications.AndroidImportance.HIGH,
+            sound: 'email-sound.wav', // <- for Android 8.0+, see channelId property below
+        });
+        
+        // Eg. schedule the notification
+        Notifications.scheduleNotificationAsync({
+            content: {
+            title: "You've got mail! 📬",
+            body: 'Open the notification to read them all',
+            sound: 'email-sound.wav', // <- for Android below 8.0
+            },
+            trigger: {
+            seconds: 2,
+            channelId: 'new-emails', // <- for Android 8.0+, see definition above
+            },
+        });
     }
-
-    const renderUnderlayLeft = ({ item, percentOpen, close }) => (
-        <Animated.View style={[styles.backRow, styles.underlayLeft, { opacity: percentOpen }]}>
-            <TouchableOpacity onPress={() => deleteItem(item)} onPressOut={close}>
-                <MaterialCommunityIcons
-                    name={'trash-can'}
-                    size={30}
-                    style={{ color: 'black' }} 
-                />
-            </TouchableOpacity>
-        </Animated.View>
-    )
-
-    const renderUnderlayRight = ({ item, percentOpen, open }) => (
-        <View style={[styles.backRow, styles.underlayRight]}>
-            <Animated.View
-                style={[{ transform: [{ translateX: multiply(sub(1, percentOpen), -100) }] }]}
-                >
-                <TouchableOpacity onPressOut={() => console.log('update', item)}>
-                    <MaterialCommunityIcons
-                        name={'bell'}
-                        size={30}
-                        style={{ color: 'black' }} 
-                    />
-                </TouchableOpacity>
-            </Animated.View>
-        </View>
-    )
     
-
-    const closeSwipe = (open, item) => {
-        if (open) { 
-            [...itemRefs.entries()].forEach(([key, ref]) => {
-                if (key !== item.key && ref) ref.close();
-            });
-        }
-    }
-
-    const setReferenceItemSwipe = (ref, item) => {
-        if (ref && !itemRefs.get(item.key)) {
-            itemRefs.set(item.key, ref);
-        }
-    }
-
-    const renderItem = ({ item, index, drag }) => (
-        <SwipeableItem 
-            key={item.key}
-            item={item}
-            ref={(ref) => setReferenceItemSwipe(ref, item)}
-            onChange={({ open }) => closeSwipe(open, item)}
-            overSwipe={20}
-            renderUnderlayLeft={renderUnderlayLeft}
-            renderUnderlayRight={renderUnderlayRight}
-            snapPointsLeft={[75]}
-            snapPointsRight={[75]}
-            >
-            <View style={styles.item}>
-                <CheckBox
-                    value={false}
-                    onChange={() => console.log('holis')}
-                />
-                <View style={styles.row}>
-                    <TouchableOpacity onLongPress={drag} onPress={() => console.log('detailListaqui', item)}>
-                        <Text style={styles.text}>{item.text}</Text>
-                    </TouchableOpacity>    
-                </View>
-            </View>
-        </SwipeableItem>
-    )
-
-
+    test();
+    
     return (
         <View style={styles.container}>
-            <SwipeableItem 
-            key={1051}
-            item={listData[0]}
-            ref={(ref) => setReferenceItemSwipe(ref, listData[0])}
-            onChange={({ open }) => closeSwipe(open, listData[0])}
-            overSwipe={20}
-            renderUnderlayLeft={renderUnderlayLeft}
-            renderUnderlayRight={renderUnderlayRight}
-            snapPointsLeft={[75]}
-            snapPointsRight={[75]}
-            >
-            <View style={styles.item}>
-                <CheckBox
-                    value={false}
-                    onChange={() => console.log('holis')}
-                />
-                <View style={styles.row}>
-                    <TouchableOpacity onPress={() => console.log('detailListaqui')}>
-                        <Text style={styles.text}>holis</Text>
-                    </TouchableOpacity>    
-                </View>
-            </View>
-        </SwipeableItem>
-            <DraggableFlatList
-                data={listData}
-                renderItem={renderItem}
-                keyExtractor={(item, index) => index.toString()}
-                onDragEnd={({ data }) => setListData(data)}
-            />      
+            <Text>holis</Text>
         </View>
     );
 }
@@ -202,4 +235,4 @@ const styles = StyleSheet.create({
         backgroundColor: 'tomato',
         justifyContent: 'flex-end',
     },
-});
+})*/

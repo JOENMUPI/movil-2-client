@@ -177,6 +177,7 @@ const Home = ({ navigation, route }) => {
     const getList = async() => { 
         const id = route.params.id;
         const data = await Http.send('GET', `list/user/${id}`, null);
+        let res = [];
 
         if(!data) {
             Alert.alert('Fatal Error', 'No data from server...');
@@ -185,7 +186,7 @@ const Home = ({ navigation, route }) => {
             switch(data.typeResponse) {
                 case 'Success': 
                     toast(data.message);
-                    setList(data.body);
+                    res = data.body;
                     break;
             
                 case 'Fail':
@@ -199,6 +200,8 @@ const Home = ({ navigation, route }) => {
                     break;
             }
         }
+
+        return res;
     }
 
     const submitNewList = async () => {
@@ -246,7 +249,7 @@ const Home = ({ navigation, route }) => {
 
     // Ggwp
     useEffect(() => {
-        getList();
+        getList().then(res => setList(res));
     }, []);
 
     return (  

@@ -76,7 +76,7 @@ export const listDetailStyles = StyleSheet.create({
 
   underlayRight: {
     flex: 1,
-    backgroundColor: 'yellow',
+    backgroundColor: '#1e90ff',
     justifyContent: 'flex-start',
   },
     
