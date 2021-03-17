@@ -127,7 +127,7 @@ const ListDetail = ({ navigation, route }) => {
     const handleCheck = (item) => {
         const aux = { ...item, check: !item.check }
 
-        callback2(aux);
+        callback2(aux, 'update');
         updateField('check', aux.check, aux.id);
     }
 
@@ -187,16 +187,17 @@ const ListDetail = ({ navigation, route }) => {
     }
 
     const callback2 = (item, type) => { 
-        let taskAux = {}
+        let taskAux = [];
 
         switch(type) {
-            case 'update':
-                tasksAux = task.map(taskItem => {
+            case 'update': 
+                taskAux = task.map(taskItem => {  
                     if(taskItem.id == item.id) {
                         return item;
+                    
+                    } else {
+                        return taskItem;
                     }
-
-                    return taskItem;
                 });
                 break;
             
@@ -206,7 +207,7 @@ const ListDetail = ({ navigation, route }) => {
         }
 
         route.params.callback(item, type);
-        setTask(tasksAux);
+        setTask(taskAux);
     }
 
     const renderItem = ({ item, index, drag }) => (
@@ -266,10 +267,7 @@ const ListDetail = ({ navigation, route }) => {
             switch(data.typeResponse) {
                 case 'Success': 
                     toast(data.message);
-                    let auxTask = task.filter(i => i.id != taskItem.id);
-                    
-                    route.params.callback({ ...taskItem, listId: route.params.id }, 'delete');
-                    setTask(auxTask);
+                    callback2({ ...taskItem, listId: route.params.item.id }, 'delete')
                     break;
             
                 case 'Fail':
@@ -301,17 +299,7 @@ const ListDetail = ({ navigation, route }) => {
                 switch(data.typeResponse) {
                     case 'Success': 
                         toast(data.message);
-                        const taskAux = task.map((item) => {
-                            if(item.id == jsonAux.id) { 
-                                return newTask; 
-                            
-                            } else { 
-                                return item; 
-                            }
-                        }); 
-
-                        route.params.callback({ ...newTask, listId: route.params.id }, 'update'); 
-                        setTask(taskAux); 
+                        callback2({ ...newTask, listId: route.params.item.id }, 'update');
                         break;
                 
                     case 'Fail':

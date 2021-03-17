@@ -21,17 +21,19 @@ import SearchBar from '../components//SearchBar';
 import { homeStyles } from '../styles/screens/home';
 
 
+const LIST_BLANK = { id: 0, tittle: '', background: 'gray', tittleForUpdate: '', tasks: [] }
+
 const Home = ({ navigation, route }) => { 
     const [list, setList] = useState([]);
     const [tasks, setTasks] = useState([]);
     const [modal, setModal] = useState({ type: 'create', flag: false });
     const [searchBarFlag, setSearchBarFlag] = useState(false);
     const [loading, setLoading] = useState(false);
-    const [newList, setNewList] = useState({ id: 0, tittle: '', background: 'gray', tittleForUpdate: '' });
+    const [newList, setNewList] = useState(LIST_BLANK);
     
 
     // Utilities
-    const toast = (message) => {
+    const toast = (message) => { 
         ToastAndroid.showWithGravity(
             message,
             ToastAndroid.SHORT,
@@ -96,7 +98,7 @@ const Home = ({ navigation, route }) => {
                 });
                 break;
             
-            case 'create': console.log('kuku:::______', item);
+            case 'create': 
                 tasksAux = tasks;
                 tasksAux.push(item);
 
@@ -185,7 +187,7 @@ const Home = ({ navigation, route }) => {
         setTasks(aux);
     }
 
-    const deleteList = async (listItem) => {
+    const deleteList = async (listItem) => { 
         const data = await Http.send('DELETE', `list/${listItem.id}`, null);
         
         if(!data) {
@@ -194,9 +196,9 @@ const Home = ({ navigation, route }) => {
         } else {
             switch(data.typeResponse) {
                 case 'Success': 
+                    toast(data.message);
                     let auxList = list.filter(i => i.id != listItem.id);
                     
-                    toast(data.message);
                     setList(auxList);
                     break;
             
@@ -226,7 +228,7 @@ const Home = ({ navigation, route }) => {
                 Alert.alert('Fatal Error', 'No data from server...');
 
             } else { 
-                switch(data.typeResponse) {
+                switch(data.typeResponse) { 
                     case 'Success': 
                         toast(data.message);
                         let listAux = list.map((item) => {
@@ -267,7 +269,7 @@ const Home = ({ navigation, route }) => {
         } else { 
             switch(data.typeResponse) {
                 case 'Success': 
-                    toast(data.message);
+                    toast(data.message); 
                     res = data.body;
                     break;
             
@@ -284,7 +286,7 @@ const Home = ({ navigation, route }) => {
         }
 
         setLoading(false);
-        return res;
+        return res; 
     }
 
     const submitNewList = async () => {
@@ -308,7 +310,7 @@ const Home = ({ navigation, route }) => {
                         
                         listAux.unshift(newListAux);
                         setList(listAux);
-                        setNewList({ id: 0, tittle: '', background: 'gray', tittleForUpdate: '' });
+                        setNewList(LIST_BLANK);
                         break;
                 
                     case 'Fail':

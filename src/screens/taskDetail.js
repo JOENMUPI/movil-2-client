@@ -428,46 +428,6 @@ const TaskDetail = ({ route }) => {
         )
     }
 
-    const CardStepC = () => (
-        <Card>
-            {
-                task.steps.map(item => (
-                    <ListItem key={item.id} bottomDivider style={{ justifyContent: 'space-between' }}>
-                        <CheckBox
-                            checked={item.check}
-                            onPressIn={() => setNewStep({ ...item, check: !item.check })}
-                            onPress={() => handleStepCheck(item)}
-                        />
-                        <ListItem.Content >
-                            <TextInput
-                                placeholder={item.description}
-                                onFocus= {() => setNewStep(item)}
-                                onChangeText={text => setNewStep({...newStep, description: text})}
-                                onEndEditing={() => editStep(item)}
-                            /> 
-                        </ListItem.Content>
-                        <Icon 
-                            name='close-outline' 
-                            color='gray' 
-                            type='ionicon' 
-                            size={20}
-                            onPress={() => alertForDelete(item, 'step')}
-                        />
-                    </ListItem>
-                ))
-            }
-            <Input
-                placeholder='New step'
-                rightIcon={{ type: 'ionicon', name: 'chevron-forward-outline', color: 'gray', size: 20 }}
-                leftIcon={{ type: 'ionicon', name: 'reader-outline', color: 'gray', size: 20 }}
-                onFocus={()=> setNewStep(STEP_BLANK)}
-                onChangeText={text => setNewStep({...newStep, description: text})}
-                onEndEditing={() => addStep()}
-                value={newStep.description}
-            />
-        </Card>
-    )
-
     const CardArchiveC = () => (
         <Card>
             {
@@ -676,10 +636,68 @@ const TaskDetail = ({ route }) => {
                 />
             </View>  
             <ScrollView>
-                <CardStepC/>
+            <Card>
+                {
+                    task.steps.map(item => (
+                        <ListItem key={item.id} bottomDivider style={{ justifyContent: 'space-between' }}>
+                            <CheckBox
+                                checked={item.check}
+                                onPressIn={() => setNewStep({ ...item, check: !item.check })}
+                                onPress={() => handleStepCheck(item)}
+                            />
+                            <ListItem.Content >
+                                <TextInput
+                                    placeholder={item.description}
+                                    onFocus= {() => setNewStep(item)}
+                                    onChangeText={text => setNewStep({...newStep, description: text})}
+                                    onEndEditing={() => editStep(item)}
+                                /> 
+                            </ListItem.Content>
+                            <Icon 
+                                name='close-outline' 
+                                color='gray' 
+                                type='ionicon' 
+                                size={20}
+                                onPress={() => alertForDelete(item, 'step')}
+                            />
+                        </ListItem>
+                    ))
+                }
+                <Input
+                    placeholder='New step'
+                    rightIcon={{ type: 'ionicon', name: 'chevron-forward-outline', color: 'gray', size: 20 }}
+                    leftIcon={{ type: 'ionicon', name: 'reader-outline', color: 'gray', size: 20 }}
+                    onFocus={()=> setNewStep(STEP_BLANK)}
+                    onChangeText={text => setNewStep({...newStep, description: text})}
+                    onEndEditing={() => addStep()}
+                    value={newStep.description}
+                />
+            </Card>
                 <CardArchiveC/> 
                 <CardDatesC/>
-                <CardNoteC/>
+                <Card>
+                    {
+                        (!note.flag) 
+                        ? null 
+                        : <TouchableOpacity
+                            style={{ backgroundColor: '#1e90ff', alignItems: 'center', borderRadius: 5, padding: 15  }}
+                            onPress={() =>  setNote({ ...note, flag: false })}
+                            >
+                            <Text style={{ color: 'white' }}>
+                                Finish editing
+                            </Text>
+                        </TouchableOpacity>    
+                    }
+                    <TextInput
+                        placeholder={'Add note!'}
+                        multiline
+                        numberOfLines={3}
+                        value={note.note}
+                        onFocus={() => setNote({ ...note, flag: true })}
+                        onChangeText={(text) => setNote({ ...note, note: text })}   
+                        onEndEditing={handleNoteUpdate} 
+                    />
+                </Card>
             </ScrollView>
             <View style={{ 
                     paddingTop: 10, 
