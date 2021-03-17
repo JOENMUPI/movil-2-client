@@ -57,6 +57,27 @@ export const homeStyles = StyleSheet.create({
         borderTopLeftRadius: 20
     },
 
+    secondary: {
+        justifyContent: "space-between",
+        alignItems:'center',
+        backgroundColor: 'white',
+        flexDirection: 'row',
+        paddingHorizontal: 16,
+        borderRadius: 10,
+    },
+
+    viewSecondary: {
+      paddingHorizontal:16,
+      paddingTop: 10,
+      paddingVertical: 5,
+      backgroundColor: '#f4f6fc'
+    },
+
+    textSecondary: {
+      color:'gray',
+      fontSize: 30
+    },
+
     viewList: {
         backgroundColor: '#fff',
         flexDirection: "row",
@@ -82,7 +103,6 @@ export const homeStyles = StyleSheet.create({
     },
 
     buttonAdd: { 
-        color: '#006aff', 
         backgroundColor: '#fff', 
         borderRadius: 20 
     }

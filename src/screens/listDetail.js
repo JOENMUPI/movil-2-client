@@ -8,7 +8,6 @@ import {
     ActivityIndicator, 
     Modal, 
     TextInput, 
- 
 } from 'react-native';
 import Animated from 'react-native-reanimated';
 
@@ -21,12 +20,27 @@ import Http from '../components/Http';
 
 import { listDetailStyles } from '../styles/screens/listDetail';
 
+const TASK_BLANK = {
+    archives: [],
+    check: false,
+    dateCreate: null,
+    dateExpiration: null,
+    dateNotification: null,
+    id: 0,
+    listId: 0,
+    note: null,
+    position: 0,
+    priority: false,
+    steps: [],
+    tittle: '',
+}
 
-const ListDetail = ({ navigation, route }) => { 
-    const [task, setTask] = useState([]);
+
+const ListDetail = ({ navigation, route }) => {
+    const [task, setTask] = useState(route.params.item.tasks);
     const [modal, setModal] = useState({ type: 'create', flag: false });
     const [loading, setLoading] = useState(false);
-    const [newTask, setNewTask] = useState({ tittle: '', id: 0, position: task.length + 1 });
+    const [newTask, setNewTask] = useState(TASK_BLANK);
 
     let itemRefs = new Map();
     const { multiply, sub } = Animated;
@@ -111,29 +125,47 @@ const ListDetail = ({ navigation, route }) => {
     }
 
     const handleCheck = (item) => {
-        let updated = task.map((taskItem) => { 
-            if (item.id === taskItem.id) { 
-                return { ...taskItem, check: !taskItem.check };
-            }
+        const aux = { ...item, check: !item.check }
 
-            return taskItem;
+        callback2(aux);
+        updateField('check', aux.check, aux.id);
+    }
+
+    const orderTask = () => {
+        let taskAuxPriority = [];
+        let taskAuxNoPriority = [];
+
+        task.forEach(taskItem => {
+            (taskItem.priority)
+            ? taskAuxPriority.push(taskItem)
+            : taskAuxNoPriority.push(taskItem);
         });
 
-        setTask(updated);
-        updateCheck(item);
+        const taskAux = taskAuxPriority.concat(taskAuxNoPriority); 
+        
+        setTask(taskAux);
     }
 
     const handlePriority = (item) => {
-        let updated = task.map((taskItem) => { 
-            if (item.id === taskItem.id) { 
-                return { ...taskItem, priority: !taskItem.priority };
-            }
+        const newData = { ...item, priority: !item.priority }
+        let taskAux = [];
+        
+        if(newData.priority) {
+            taskAux = task.filter(i => i.id != item.id);
+            taskAux.unshift(newData);
+        } else {
+            taskAux = task.map(i => {
+                if(i.id == item.id) {
+                    return newData;
+                }
 
-            return taskItem;
-        });
+                return i;
+            });
+        } 
 
-        setTask(updated);
-        updatePriority(item);
+        route.params.callback(newData, 'update');
+        updateField('priority', newData.priority, newData.id); 
+        setTask(taskAux);
     }
 
     const basicHandlerResponse = (data) => {
@@ -154,6 +186,29 @@ const ListDetail = ({ navigation, route }) => {
         }
     }
 
+    const callback2 = (item, type) => { 
+        let taskAux = {}
+
+        switch(type) {
+            case 'update':
+                tasksAux = task.map(taskItem => {
+                    if(taskItem.id == item.id) {
+                        return item;
+                    }
+
+                    return taskItem;
+                });
+                break;
+            
+            case 'delete':
+                taskAux = task.filter(i => i.id != item.id);
+                break;
+        }
+
+        route.params.callback(item, type);
+        setTask(tasksAux);
+    }
+
     const renderItem = ({ item, index, drag }) => (
         <SwipeableItem
             key={item.key}
@@ -172,7 +227,10 @@ const ListDetail = ({ navigation, route }) => {
                     onPress={() => handleCheck(item)}
                 />
                 <View style={listDetailStyles.row}>
-                    <TouchableOpacity onLongPress={drag} onPress={() => navigation.navigate('TaskDetail', item)}>
+                    <TouchableOpacity 
+                        onLongPress={drag} 
+                        onPress={() => navigation.navigate('TaskDetail', { item, callback: callback2.bind(this) })}
+                        >
                         <Text style={listDetailStyles.text}>{item.tittle}</Text>
                     </TouchableOpacity> 
                     <CheckBox
@@ -188,6 +246,16 @@ const ListDetail = ({ navigation, route }) => {
 
 
     // Logic
+
+
+    const updateField = async (type, field, id) => { 
+        const data = await Http.send('PUT', 'task/field', { type, id, field });
+
+        (!data) 
+        ? Alert.alert('Fatal Error', 'No data from server...')
+        : basicHandlerResponse(data);
+    }
+
     const deleteTask = async (taskItem) => {
         const data = await Http.send('DELETE', `task/${taskItem.id}`, null);
         
@@ -197,9 +265,10 @@ const ListDetail = ({ navigation, route }) => {
         } else {
             switch(data.typeResponse) {
                 case 'Success': 
+                    toast(data.message);
                     let auxTask = task.filter(i => i.id != taskItem.id);
                     
-                    toast(data.message);
+                    route.params.callback({ ...taskItem, listId: route.params.id }, 'delete');
                     setTask(auxTask);
                     break;
             
@@ -214,24 +283,6 @@ const ListDetail = ({ navigation, route }) => {
                     break;
             }
         }
-    }
-
-    const updatePriority = async (item) => {
-        const jsonAux = { type: 'priority', id: item.id, field: !item.priority };
-        const data = await Http.send('PUT', 'task/field', jsonAux);
-
-        (!data) 
-        ? Alert.alert('Fatal Error', 'No data from server...')
-        : basicHandlerResponse(data);
-    }
-
-    const updateCheck = async (item) => { 
-        const jsonAux = { type: 'check', id: item.id, field: !item.check };
-        const data = await Http.send('PUT', 'task/field', jsonAux);
-
-        (!data) 
-        ? Alert.alert('Fatal Error', 'No data from server...')
-        : basicHandlerResponse(data);
     }
 
     const updateTaskTittle = async () => { 
@@ -250,15 +301,16 @@ const ListDetail = ({ navigation, route }) => {
                 switch(data.typeResponse) {
                     case 'Success': 
                         toast(data.message);
-                        let taskAux = task.map((item) => {
+                        const taskAux = task.map((item) => {
                             if(item.id == jsonAux.id) { 
-                                return { ...item, tittle: newTask.tittle } 
+                                return newTask; 
                             
                             } else { 
                                 return item; 
                             }
-                        });
+                        }); 
 
+                        route.params.callback({ ...newTask, listId: route.params.id }, 'update'); 
                         setTask(taskAux); 
                         break;
                 
@@ -280,40 +332,13 @@ const ListDetail = ({ navigation, route }) => {
         setModal({ ...modal, flag: false });
     }
 
-    const getTask = async() => {
-        const id = route.params.id;
-        const data = await Http.send('GET', `task/list/${id}`, null);
-
-        if(!data) {
-            Alert.alert('Fatal Error', 'No data from server...');
-
-        } else { 
-            switch(data.typeResponse) {
-                case 'Success': 
-                    toast(data.message);
-                    setTask(data.body);
-                    break;
-            
-                case 'Fail':
-                    data.body.errors.forEach(element => {
-                        toast(element.text);
-                    });
-                    break;
-
-                default:
-                    Alert.alert(data.typeResponse, data.message);
-                    break;
-            }
-        }
-    }
-
     const submitNewTask = async () => { 
         if(!Field.checkFields([ newTask.tittle ])) {
             Alert.alert('Empty Field', 'Please, write a tittle');
         
         } else { 
             setLoading(true);
-            const id = route.params.id;  
+            const id = route.params.item.id;  
             const data = await Http.send('POST', 'task', { ...newTask, listId: id });
 
             if(!data) {
@@ -323,12 +348,13 @@ const ListDetail = ({ navigation, route }) => {
                 switch(data.typeResponse) { 
                     case 'Success': 
                         toast(data.message); 
-                        let newTaskAux = { ...newTask, id: data.body.id }
+                        let newTaskAux = { ...newTask, id: data.body.id, listId: id }
                         let taskAux = task;
                         
-                        taskAux.unshift(newTaskAux); 
+                        taskAux.unshift(newTaskAux);
+                        route.params.callback(newTaskAux, 'create'); 
                         setTask(taskAux);
-                        setNewTask({ tittle: '', id: 0, position: task.length + 1 });
+                        setNewTask(TASK_BLANK);
                         break;
                 
                     case 'Fail':
@@ -349,10 +375,9 @@ const ListDetail = ({ navigation, route }) => {
         setModal({ ...modal, flag: false });
     }
 
-
     // Ggwp
     useEffect(() => {
-        getTask();
+        orderTask(); 
     }, []);
     
     return (
@@ -415,7 +440,7 @@ const ListDetail = ({ navigation, route }) => {
 
             <View style={listDetailStyles.viewTittle}>
                 <Text style={listDetailStyles.textTtittle}>
-                    {route.params.tittle}
+                    {route.params.item.tittle}
                 </Text>
             </View>
             <View style={listDetailStyles.header}>

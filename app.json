@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "TaksFast",
-    "slug": "TaksFast",
+    "name": "FastTask",
+    "slug": "FastTask",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/logito.png",
@@ -21,7 +21,7 @@
     },
     "android": {
       "useNextNotificationsApi": true,
-      "adaptiveIcon": {   
+      "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#FFFFFF"
       }

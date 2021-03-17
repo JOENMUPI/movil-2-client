@@ -16,18 +16,15 @@ const STEP_BLANK = { description: '', id: 0, check: false }
 const ARCHIVE_BLANK = { id: 0, data: { } };
 
 
-const TaskDetail = ({ navigation, route }) => { 
-    const [steps, setSteps] = useState([]);
-    const [archives, setArchives] = useState([]);
-    const [note, setNote] = useState({ flag: false, note: route.params.note });
+const TaskDetail = ({ route }) => { 
+    const [note, setNote] = useState({ flag: false, note: route.params.item.note });
     const [dateExp, setDateExp] = useState({ flag: false, data: null });
     const [dateNotification, setDateNotification] = useState({ flag: false, data: null });
-    const [task, setTask] = useState(route.params);
+    const [task, setTask] = useState(route.params.item);
     const [newArchive, setNewArchive] = useState(ARCHIVE_BLANK);
     const [newStep, setNewStep] = useState(STEP_BLANK);
     const [modal, setModal] = useState({ type: 'date', flag: false}); 
     const [token, setToken] = useState(null); 
-
 
 
     // Utilties
@@ -57,29 +54,35 @@ const TaskDetail = ({ navigation, route }) => {
 
     const editStep = (item) => { 
         if(Field.checkFields([ newStep.description ])) {
-            let stepsAux = steps.map(step => {
+            const stepsAux = task.steps.map(step => {
                 if(step.id == item.id) {
                     return newStep;
                 }
                 
                 return step;
             });
-    
-            setSteps(stepsAux);
+
+            const taskAux = { ...task, steps: stepsAux }
+
+            route.params.callback(taskAux, 'update');
+            setTask(taskAux);
             sendEditStep('description');
         } 
     }
 
-    const handleStepCheck = (item) => {      
-        let stepAux = steps.map(step => {
+    const handleStepCheck = (item) => {   
+        const stepAux = task.steps.map(step => {
             if(step.id == item.id) {
-                return { ...step, check: !item.check };
+                return newStep;
             }
 
             return step;
-        }); 
+        });
+
+        const taskAux = { ...task, steps: stepAux } 
         
-        setSteps(stepAux);
+        route.params.callback(taskAux, 'update');
+        setTask(taskAux);
         sendEditStep('check');  
     }
 
@@ -87,21 +90,23 @@ const TaskDetail = ({ navigation, route }) => {
         if (dateExp.flag) {
             let dateAux = date;
 
-            dateAux.setDate(dateAux.getDate() - 1);
+            dateAux.setDate(date.getDate() - 1);
+            route.params.callback({ ...task, dateExpiration: date }, 'update');
             setDateExp({ data: date, flag: false });  
             updateField('date', date); 
             schedulePushNotification(
                 "📬We don't have any more time!",
-                `${route.params.tittle}: There is little left until this task expires!`,
+                `${route.params.item.tittle}: There is little left until this task expires!`,
                 dateAux
             );
         
-        } else {
+        } else { 
+            route.params.callback({ ...task, dateNotification: date }, 'update');
             setDateNotification({ data: date, flag: false });
             updateField('notification', date);
             schedulePushNotification(
                 '📬Notification!',
-                `the task ${route.params.tittle} requires your attention.`, 
+                `the task ${route.params.item.tittle} requires your attention.`, 
                 date
             );
         }
@@ -114,17 +119,24 @@ const TaskDetail = ({ navigation, route }) => {
     }
 
     const handlePriority = () => {
+        const newData  = { ...task, priority: !task.priority }
+
+        route.params.callback(newData, 'update');
         updateField('priority', !task.priority);
-        setTask({ ...task, priority: !task.priority });
+        setTask(newData);
     }
 
     const handleCheck = () => {
+        const newData = { ...task, check: !task.check }
+        
+        route.params.callback(newData, 'update');
         updateField('check', !task.check);
-        setTask({ ...task, check: !task.check })
+        setTask(newData);
     }
 
     const handleNoteUpdate = () => {
-        updateField('note', note.note)
+        route.params.callback({  ...task, note: note.note }, 'update');
+        updateField('note', note.note);
         setNote({ ...note, flag: false });
     }
 
@@ -198,17 +210,6 @@ const TaskDetail = ({ navigation, route }) => {
         }
     }
 
-    const alertForDeleteTask = () => {
-        Alert.alert(
-            "Delete",
-            `Are you sure delete ${route.params.tittle}`,
-            [
-                { text: "Cancel", style: "cancel" }, 
-                { text: "OK", onPress: () => deleteTask() }
-    
-            ], { cancelable: false }
-        );
-    }
 
     const basicHandlerResponse = (data) => {
         switch(data.typeResponse) { 
@@ -230,33 +231,8 @@ const TaskDetail = ({ navigation, route }) => {
 
 
     // Logic
-    const deleteTask = async () => {
-        const data = await Http.send('DELETE', `task/${route.params.id}`, null);
-        
-        if(!data) {
-            Alert.alert('Fatal Error', 'No data from server...');
-
-        } else {
-            switch(data.typeResponse) {
-                case 'Success': 
-                    navigation.goBack();
-                    break;
-            
-                case 'Fail':
-                    data.body.errors.forEach(element => {
-                        toast(element.text);
-                    });
-                    break;
-
-                default:
-                    Alert.alert(data.typeResponse, data.message);
-                    break;
-            }
-        }
-    }
-
     const updateField = async (type, field) => { 
-        const jsonAux = { type, id: route.params.id, field };
+        const jsonAux = { type, id: route.params.item.id, field };
         const data = await Http.send('PUT', 'task/field', jsonAux);
 
         (!data) 
@@ -281,7 +257,7 @@ const TaskDetail = ({ navigation, route }) => {
             Alert.alert('Empty Field', 'Please, write a tittle');
         
         } else { 
-            const data = await Http.send('POST', 'step', { ...newStep, taskId: route.params.id });
+            const data = await Http.send('POST', 'step', { ...newStep, taskId: route.params.item.id });
          
             if(!data) {
                 Alert.alert('Fatal Error', 'No data from server...');
@@ -290,9 +266,14 @@ const TaskDetail = ({ navigation, route }) => {
                 switch(data.typeResponse) { 
                     case 'Success': 
                         toast(data.message); 
-                        let newStepAux = { ...newStep, id: data.body.id }
- 
-                        setSteps([ ...steps, newStepAux]); 
+                        const newStepAux = { ...newStep, id: data.body.id }
+                        let stepAux = task.steps;
+                        
+                        stepAux.push(newStepAux);
+                        const taskAux = { ...task, steps: stepAux }
+                        
+                        route.params.callback(taskAux);
+                        setTask(taskAux);
                         setNewStep(STEP_BLANK);
                         break;
                 
@@ -310,36 +291,6 @@ const TaskDetail = ({ navigation, route }) => {
         }
     }
 
-    const getSteps = async() => {
-        const id = route.params.id;
-        const data = await Http.send('GET', `step/task/${id}`, null);
-        let aux = [];
-
-        if(!data) {
-            Alert.alert('Fatal Error', 'No data from server...');
-
-        } else { 
-            switch(data.typeResponse) {
-                case 'Success': 
-                    toast(data.message);
-                    aux = data.body; 
-                    break;
-            
-                case 'Fail':
-                    data.body.errors.forEach(element => {
-                        toast(element.text);
-                    });
-                    break;
-
-                default:
-                    Alert.alert(data.typeResponse, data.message);
-                    break;
-            }
-        } 
-
-        return aux;
-    }
-
     const deleteStep = async (stepItem) => {
         const data = await Http.send('DELETE', `step/${stepItem.id}`, null);
         
@@ -349,10 +300,12 @@ const TaskDetail = ({ navigation, route }) => {
         } else {
             switch(data.typeResponse) {
                 case 'Success': 
-                    let stepsAux = steps.filter(i => i.id != stepItem.id);
-                    
-                    toast(data.message);
-                    setSteps(stepsAux);
+                    toast(data.message);    
+                    const stepsAux = task.steps.filter(i => i.id != stepItem.id);
+                    const taskAux = { ...task, steps: stepsAux }
+
+                    route.params.callback(taskAux);
+                    setTask(taskAux);
                     break;
             
                 case 'Fail':
@@ -370,42 +323,12 @@ const TaskDetail = ({ navigation, route }) => {
 
 
     // Archives logic
-    const getArchives = async() => {
-        const id = route.params.id;
-        const data = await Http.send('GET', `archive/task/${id}`, null);
-        let aux;
-
-        if(!data) {
-            Alert.alert('Fatal Error', 'No data from server...');
-
-        } else { 
-            switch(data.typeResponse) {
-                case 'Success': 
-                    toast(data.message);
-                    aux = data.body; 
-                    break;
-            
-                case 'Fail':
-                    data.body.errors.forEach(element => {
-                        toast(element.text);
-                    });
-                    break;
-
-                default:
-                    Alert.alert(data.typeResponse, data.message);
-                    break;
-            }
-        }
-        
-        return aux;
-    }
-
     const addArchive = async (archive) => { 
         if(!Field.checkFields([ archive.data.type, archive.data.format, archive.data.tittle ])) {
             Alert.alert('Empty Field', 'Mayday');
         
         } else { 
-            const data = await Http.send('POST', 'archive', { data: archive.data, taskId: route.params.id });
+            const data = await Http.send('POST', 'archive', { data: archive.data, taskId: route.params.item.id });
          
             if(!data) {
                 Alert.alert('Fatal Error', 'No data from server...');
@@ -414,9 +337,14 @@ const TaskDetail = ({ navigation, route }) => {
                 switch(data.typeResponse) { 
                     case 'Success': 
                         toast(data.message); 
-                        let newArchiveAux = { ...archive, id: data.body.id }
- 
-                        setArchives([ ...archives, newArchiveAux]); 
+                        const newArchiveAux = { ...archive, id: data.body.id }
+                        let archivesAux = task.archives;
+             
+                        archivesAux.push(newArchiveAux);
+                        const taskAux = { ...task, archives: archivesAux }
+
+                        route.params.callback(taskAux, 'update');
+                        setTask(taskAux);
                         break;
                 
                     case 'Fail':
@@ -442,10 +370,12 @@ const TaskDetail = ({ navigation, route }) => {
         } else {
             switch(data.typeResponse) {
                 case 'Success': 
-                    let archivesAux = archives.filter(i => i.id != archiveItem.id);
+                    toast(data.message);    
+                    const archivesAux = task.archives.filter(i => i.id != archiveItem.id);
+                    const taskAux = { ...task, archives: archivesAux }
                     
-                    toast(data.message);
-                    setArchives(archivesAux);
+                    route.params.callback(taskAux, 'update');
+                    setTask(taskAux);
                     break;
             
                 case 'Fail':
@@ -464,19 +394,237 @@ const TaskDetail = ({ navigation, route }) => {
 
     // Ggwp
     useEffect(() => {
-        getSteps().then(res => setSteps(res));
-        getArchives().then(res => setArchives(res));
         handlePushNotifications().then(res => setToken(res));
     }, []);
 
-    const TextC = ({ txt1, txt2 }) => {
-        return (
-            <View >
-                <Text style={{ color: 'gray' }}>{txt1}</Text>
-                <Text style={{ color: 'gray' }}>{txt2}</Text>
+    const TextC2 = ({ data1, data2 }) => {
+        let data2Aux = [ '...', '...' ];
+
+        if(data2 != null) { 
+            if(data2.toString().indexOf('Z') != -1) {
+                data2Aux[0] = data2.toString().split('T')[0];
+                data2Aux[1] = data2.toString().split('T')[1].split('.')[0];
+            
+            } else {
+                data2Aux[0] = data2.toString().split(' ').splice(1,3).join('-');
+                data2Aux[1] = data2.toString().split(' ')[4];
+            }
+        }
+
+        return (   
+            <View>
+                {
+                    (data1 != null)
+                    ? <View >
+                        <Text style={{ color: 'gray' }}>{data1.toString().split(' ').splice(1,3).join('-')}</Text>
+                        <Text style={{ color: 'gray' }}>{data1.toString().split(' ')[4]}</Text>
+                    </View>
+                    : <View >
+                        <Text style={{ color: 'gray' }}>{data2Aux[0]}</Text>
+                        <Text style={{ color: 'gray' }}>{data2Aux[1]}</Text>
+                    </View>
+                }
             </View>
         )
-    } 
+    }
+
+    const CardStepC = () => (
+        <Card>
+            {
+                task.steps.map(item => (
+                    <ListItem key={item.id} bottomDivider style={{ justifyContent: 'space-between' }}>
+                        <CheckBox
+                            checked={item.check}
+                            onPressIn={() => setNewStep({ ...item, check: !item.check })}
+                            onPress={() => handleStepCheck(item)}
+                        />
+                        <ListItem.Content >
+                            <TextInput
+                                placeholder={item.description}
+                                onFocus= {() => setNewStep(item)}
+                                onChangeText={text => setNewStep({...newStep, description: text})}
+                                onEndEditing={() => editStep(item)}
+                            /> 
+                        </ListItem.Content>
+                        <Icon 
+                            name='close-outline' 
+                            color='gray' 
+                            type='ionicon' 
+                            size={20}
+                            onPress={() => alertForDelete(item, 'step')}
+                        />
+                    </ListItem>
+                ))
+            }
+            <Input
+                placeholder='New step'
+                rightIcon={{ type: 'ionicon', name: 'chevron-forward-outline', color: 'gray', size: 20 }}
+                leftIcon={{ type: 'ionicon', name: 'reader-outline', color: 'gray', size: 20 }}
+                onFocus={()=> setNewStep(STEP_BLANK)}
+                onChangeText={text => setNewStep({...newStep, description: text})}
+                onEndEditing={() => addStep()}
+                value={newStep.description}
+            />
+        </Card>
+    )
+
+    const CardArchiveC = () => (
+        <Card>
+            {
+                task.archives.map(item => (
+                    <ListItem key={item.id} bottomDivider style={{ paddingBottom: 20, justifyContent: 'space-between' }}>
+                        <View style={{ borderRadius: 10, backgroundColor: 'grey' }}>
+                            <Avatar
+                                size="small"
+                                title={item.data.format}
+                                activeOpacity={0.7}
+                            />
+                        </View>
+                        
+                        <ListItem.Content>
+                            <TouchableOpacity
+                                onPressIn={() => setNewArchive(item)}
+                                onPress={() => setModal(true)}
+                                >
+                                <Text>
+                                    {item.data.tittle}
+                                </Text>
+                            </TouchableOpacity> 
+                        </ListItem.Content>
+                        <Icon 
+                            name='close-outline' 
+                            color='gray' 
+                            type='ionicon' 
+                            size={20}
+                            onPress={() => alertForDelete(item, 'image')}
+                        />
+                    </ListItem>
+                ))
+            }
+            <TouchableOpacity 
+                style={{ flexDirection: "row", justifyContent: "space-between" }}
+                onPress={() => openImagePickerAsync()}
+                >
+                <View style={{  flexDirection: "row", alignItems: "center", }}>
+                    <Icon 
+                        name='attach-outline' 
+                        color='gray' 
+                        type='ionicon' 
+                        size={20}        
+                    />
+                    <Text>
+                        Add archives
+                    </Text>
+                </View>     
+                <Icon 
+                    name='chevron-forward-outline' 
+                    color='gray' 
+                    type='ionicon' 
+                    size={20}
+                    
+                />
+            </TouchableOpacity>
+        </Card> 
+    )
+
+    const CardDatesC = () => (
+        <Card>
+            <ListItem 
+                key={2} 
+                bottomDivider
+                onPress={() => setDateNotification({ ...dateNotification, flag: true })} 
+                >
+                <ListItem.Content>
+                    <View
+                        style={{ flexDirection: "row", justifyContent: "space-between" }}
+                        >
+                        <View style={{  flexDirection: "row", alignItems: "center", }}>
+                            <Icon 
+                                name='notifications-outline' 
+                                color='gray' 
+                                type='ionicon' 
+                                size={20}
+                                
+                            />
+                            <Text style={{ paddingLeft: 5, color: 'gray' }}>
+                                Remember me
+                            </Text>
+                        </View>       
+                    </View>
+                </ListItem.Content>  
+                <TextC2
+                    data1={dateNotification.data}
+                    data2={route.params.item.dateNotification}
+                />
+                <Icon 
+                    name='chevron-forward-outline' 
+                    color='gray' 
+                    type='ionicon' 
+                    size={20}  
+                />
+            </ListItem>
+            <ListItem 
+                key={0} 
+                bottomDivider
+                onPress={() => setDateExp({ ...dateExp, flag: true })}
+                >
+                <ListItem.Content>
+                    <View
+                        style={{ flexDirection: "row", justifyContent: "space-between" }}
+                        >
+                        <View style={{  flexDirection: "row", alignItems: "center", }}>
+                            <Icon 
+                                name='calendar-outline' 
+                                color='gray' 
+                                type='ionicon' 
+                                size={20}
+                                
+                            />
+                            <Text style={{ paddingLeft: 5, color: 'gray' }}>
+                                Expiration date
+                            </Text>
+                        </View>
+                    </View>
+                </ListItem.Content>
+                <TextC2
+                    data1={dateExp.data}
+                    data2={route.params.item.dateExpiration}
+                />
+                <Icon 
+                    name='chevron-forward-outline' 
+                    color='gray' 
+                    type='ionicon' 
+                    size={20}
+                />
+            </ListItem>
+        </Card>
+    )
+
+    const CardNoteC = () => (
+        <Card>
+            {
+                (!note.flag) 
+                ? null 
+                : <TouchableOpacity
+                    style={{ backgroundColor: '#1e90ff', alignItems: 'center', borderRadius: 5, padding: 15  }}
+                    onPress={() =>  setNote({ ...note, flag: false })}
+                    >
+                    <Text style={{ color: 'white' }}>
+                        Finish editing
+                    </Text>
+                </TouchableOpacity>    
+            }
+            <TextInput
+                placeholder={'Add note!'}
+                multiline
+                numberOfLines={3}
+                value={note.note}
+                onFocus={() => setNote({ ...note, flag: true })}
+                onChangeText={(text) => setNote({ ...note, note: text })}   
+                onEndEditing={handleNoteUpdate} 
+            />
+        </Card>
+    )
     
     return (
         <View style={{ paddingTop: 24, flex:1  }}>
@@ -518,7 +666,7 @@ const TaskDetail = ({ navigation, route }) => {
                     onPress={handleCheck}
                 />   
                 <Text style={{ color: 'gray', fontSize: 30 }}>
-                    {route.params.tittle}
+                    {route.params.item.tittle}
                 </Text>
                 <CheckBox
                     checkedIcon={<Icon name='star' color='gold' type='ionicon' size={30}/>}
@@ -528,207 +676,10 @@ const TaskDetail = ({ navigation, route }) => {
                 />
             </View>  
             <ScrollView>
-                <Card>
-                    {
-                        steps.map(item => (
-                            <ListItem key={item.id} bottomDivider style={{ justifyContent: 'space-between' }}>
-                                <CheckBox
-                                    checked={item.check}
-                                    onPressIn={() => setNewStep({ ...item, check: !item.check })}
-                                    onPress={() => handleStepCheck(item)}
-                                />
-                                <ListItem.Content >
-                                    <TextInput
-                                        placeholder={item.description}
-                                        onFocus= {() => setNewStep(item)}
-                                        onChangeText={text => setNewStep({...newStep, description: text})}
-                                        onEndEditing={() => editStep(item)}
-                                    /> 
-                                </ListItem.Content>
-                                <Icon 
-                                    name='close-outline' 
-                                    color='gray' 
-                                    type='ionicon' 
-                                    size={20}
-                                    onPress={() => alertForDelete(item, 'step')}
-                                />
-                            </ListItem>
-                        ))
-                    }
-                    <Input
-                        placeholder='New step'
-                        rightIcon={{ type: 'ionicon', name: 'chevron-forward-outline', color: 'gray', size: 20 }}
-                        leftIcon={{ type: 'ionicon', name: 'reader-outline', color: 'gray', size: 20 }}
-                        onFocus={()=> setNewStep(STEP_BLANK)}
-                        onChangeText={text => setNewStep({...newStep, description: text})}
-                        onEndEditing={() => addStep()}
-                        value={newStep.description}
-                    />
-                </Card>
-                <Card>
-                    {
-                        archives.map(item => (
-                            <ListItem key={item.id} bottomDivider style={{ paddingBottom: 20, justifyContent: 'space-between' }}>
-                                <View style={{ borderRadius: 10, backgroundColor: 'grey' }}>
-                                    <Avatar
-                                        size="small"
-                                        title={item.data.format}
-                                        activeOpacity={0.7}
-                                    />
-                                </View>
-                                
-                                <ListItem.Content>
-                                    <TouchableOpacity
-                                        onPressIn={() => setNewArchive(item)}
-                                        onPress={() => setModal(true)}
-                                        >
-                                        <Text>
-                                            {item.data.tittle}
-                                        </Text>
-                                    </TouchableOpacity> 
-                                </ListItem.Content>
-                                <Icon 
-                                    name='close-outline' 
-                                    color='gray' 
-                                    type='ionicon' 
-                                    size={20}
-                                    onPress={() => alertForDelete(item, 'image')}
-                                />
-                            </ListItem>
-                        ))
-                    }
-                    <TouchableOpacity 
-                        style={{ flexDirection: "row", justifyContent: "space-between" }}
-                        onPress={() => openImagePickerAsync()}
-                        >
-                        <View style={{  flexDirection: "row", alignItems: "center", }}>
-                            <Icon 
-                                name='attach-outline' 
-                                color='gray' 
-                                type='ionicon' 
-                                size={20}        
-                            />
-                            <Text>
-                                Add archives
-                            </Text>
-                        </View>     
-                        <Icon 
-                            name='chevron-forward-outline' 
-                            color='gray' 
-                            type='ionicon' 
-                            size={20}
-                            
-                        />
-                    </TouchableOpacity>
-                </Card> 
-                <Card>
-                <ListItem key={2} bottomDivider>
-                        <ListItem.Content>
-                            <TouchableOpacity
-                                style={{ flexDirection: "row", justifyContent: "space-between" }}
-                                onPress={() => setDateNotification({ ...dateNotification, flag: true })}
-                                >
-                                <View style={{  flexDirection: "row", alignItems: "center", }}>
-                                    <Icon 
-                                        name='notifications-outline' 
-                                        color='gray' 
-                                        type='ionicon' 
-                                        size={20}
-                                        
-                                    />
-                                    <Text style={{ paddingLeft: 5 }}>
-                                        Remember me
-                                    </Text>
-                                </View>       
-                            </TouchableOpacity>
-                        </ListItem.Content>                        
-                        {
-                            (dateNotification.data != null)
-                            ? <TextC
-                                txt1={dateNotification.data.toString().split(' ').splice(1,3).join('-')}
-                                txt2={dateNotification.data.toString().split(' ')[4]}
-                            /> 
-                            : (route.params.dateNotification != null) 
-                            ? <TextC 
-                                txt1={route.params.dateNotification.toString().split('T')[0]}
-                                txt2={route.params.dateNotification.toString().split('T')[1].split('.')[0]}
-                            />
-                            : <Text style={{ color: 'gray' }}>...</Text>
-                        } 
-                        <Icon 
-                            name='chevron-forward-outline' 
-                            color='gray' 
-                            type='ionicon' 
-                            size={20}  
-                        />
-                    </ListItem>
-                    <ListItem key={0} bottomDivider>
-                        <ListItem.Content>
-                            <TouchableOpacity
-                                style={{ flexDirection: "row", justifyContent: "space-between" }}
-                                onPress={() => setDateExp({ ...dateExp, flag: true })}
-                                >
-                                <View style={{  flexDirection: "row", alignItems: "center", }}>
-                                    <Icon 
-                                        name='calendar-outline' 
-                                        color='gray' 
-                                        type='ionicon' 
-                                        size={20}
-                                        
-                                    />
-                                    <Text style={{ paddingLeft: 5 }}>
-                                        Expiration date
-                                    </Text>
-                                </View>
-                                
-                                
-                            </TouchableOpacity>
-                        </ListItem.Content>
-                        {
-                            (dateExp.data != null)
-                            ? 
-                            <TextC
-                                txt1={dateExp.data.toString().split(' ').splice(1,3).join('-')}
-                                txt2={dateExp.data.toString().split(' ')[4]}
-                            /> 
-                            : (route.params.dateExpiration != null) 
-                            ? <TextC 
-                                txt1={route.params.dateExpiration.toString().split('T')[0]}
-                                txt2={route.params.dateExpiration.toString().split('T')[1].split('.')[0]}
-                            />
-                            : <Text style={{ color: 'gray' }}>...</Text>
-                        } 
-                        <Icon 
-                            name='chevron-forward-outline' 
-                            color='gray' 
-                            type='ionicon' 
-                            size={20}
-                        />
-                    </ListItem>
-                </Card>
-                <Card>
-                {
-                    (!note.flag) 
-                    ? null 
-                    : <TouchableOpacity
-                        style={{ backgroundColor: '#1e90ff', alignItems: 'center', borderRadius: 5, padding: 15  }}
-                        onPress={() =>  setNote({ ...note, flag: false })}
-                        >
-                        <Text style={{ color: 'white' }}>
-                            Finish editing
-                        </Text>
-                    </TouchableOpacity>    
-                }
-                <TextInput
-                    placeholder={'Add note!'}
-                    multiline
-                    numberOfLines={3}
-                    value={note.note}
-                    onFocus={() => setNote({ ...note, flag: true })}
-                    onChangeText={(text) => setNote({ ...note, note: text })}   
-                    onEndEditing={handleNoteUpdate} 
-                />
-                </Card>
+                <CardStepC/>
+                <CardArchiveC/> 
+                <CardDatesC/>
+                <CardNoteC/>
             </ScrollView>
             <View style={{ 
                     paddingTop: 10, 
@@ -741,20 +692,13 @@ const TaskDetail = ({ navigation, route }) => {
                 }}
                 > 
                 <Text style={{ color: 'gray', fontSize: 20 }}>
-                    Task created: 
+                    {'Task created: '}  
                     {
-                        (route.params.dateCreate)
-                        ? route.params.dateCreate.toString().split('T')[0]
-                        : 'now'
+                        (route.params.item.dateCreate)
+                        ? route.params.item.dateCreate.toString().split('T')[0]
+                        : 'Now'
                     }
                 </Text>
-                <Icon 
-                    name='trash-outline' 
-                    color='gray' 
-                    type='ionicon' 
-                    size={20}
-                    onPress={alertForDeleteTask}        
-                />
             </View>
         </View>
     )

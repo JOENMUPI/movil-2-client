@@ -1,4 +1,4 @@
-const url = 'http://192.168.1.100:8000/'
+const url = 'https://server-movil-2.herokuapp.com/'
 const headers = { 'Content-Type': 'application/json' }
 
 

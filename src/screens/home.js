@@ -16,15 +16,18 @@ import { Icon } from 'react-native-elements'
 
 import Field from '../components/Field';
 import Http from '../components/Http';
+import SearchBar from '../components//SearchBar';
 
 import { homeStyles } from '../styles/screens/home';
 
 
-const Home = ({ navigation, route }) => {
+const Home = ({ navigation, route }) => { 
     const [list, setList] = useState([]);
+    const [tasks, setTasks] = useState([]);
     const [modal, setModal] = useState({ type: 'create', flag: false });
+    const [searchBarFlag, setSearchBarFlag] = useState(false);
     const [loading, setLoading] = useState(false);
-    const [newList, setNewList] = useState({ id: 0, tittle: '', background: 'black', tittleForUpdate: '' });
+    const [newList, setNewList] = useState({ id: 0, tittle: '', background: 'gray', tittleForUpdate: '' });
     
 
     // Utilities
@@ -61,12 +64,80 @@ const Home = ({ navigation, route }) => {
           );
     } 
 
+    const callback = (item, type) => {
+        let tasksAux= [];
+        let listAux = [];
+        let taskAux = [];
+
+        switch(type) {
+            case 'update':
+                tasksAux = tasks.map(task => {
+                    if(task.id == item.id) {
+                        return item;
+                    }
+        
+                    return task;
+                });
+        
+                listAux = list.map(i => {
+                    if(i.id == item.listId) {
+                        taskAux = i.tasks.map(element => {
+                            if(element.id == item.id) {
+                                return item;
+                            }
+        
+                            return element;
+                        });
+        
+                        return { ...i, tasks: taskAux };
+                    }
+        
+                    return i;
+                });
+                break;
+            
+            case 'create': console.log('kuku:::______', item);
+                tasksAux = tasks;
+                tasksAux.push(item);
+
+                listAux = list.map(i => {
+                    if(i.id == item.listId) {
+                        taskAux = i.tasks;
+                        taskAux.push(item);
+        
+                        return { ...i, tasks: taskAux }
+                    }
+        
+                    return i;
+                });
+                break;
+
+            case 'delete': 
+                tasksAux = tasks.filter(i => i.id != item.id);
+
+                listAux = list.map(i => {
+                    if(i.id == item.listId) {
+                        return {...i, tasks: i.tasks.filter(j => j.id != item.id)}
+                    }
+                    
+                    return i;
+                });
+                break;
+        }
+
+        setList(listAux);
+        setTasks(tasksAux); 
+    }
+
     const List = ({ data, tittle, theme, stamp }) => {
         return (
             <View style={[ homeStyles.viewList, { allignItems: "center" } ]}>
-                <TouchableOpacity onPress={() => navigation.navigate('ListDetail', data)} style={{ flexDirection: "row" }}>
+                <TouchableOpacity 
+                    onPress={() => navigation.navigate('ListDetail', { item: data, callback: callback.bind(this) })} 
+                    style={{ flexDirection: "row" }}
+                    >
                     <Icon 
-                        name='list-outline' 
+                        name='reorder-three-outline' 
                         color={theme} 
                         type='ionicon' 
                         size={30} 
@@ -104,6 +175,16 @@ const Home = ({ navigation, route }) => {
     }
 
     // Logic
+    const getTask = async (body) => { 
+        let aux = [];    
+
+        body.forEach(item => {  
+            aux = aux.concat(item.tasks);
+        });
+
+        setTasks(aux);
+    }
+
     const deleteList = async (listItem) => {
         const data = await Http.send('DELETE', `list/${listItem.id}`, null);
         
@@ -175,6 +256,7 @@ const Home = ({ navigation, route }) => {
     }
 
     const getList = async() => { 
+        setLoading(true);
         const id = route.params.id;
         const data = await Http.send('GET', `list/user/${id}`, null);
         let res = [];
@@ -201,6 +283,7 @@ const Home = ({ navigation, route }) => {
             }
         }
 
+        setLoading(false);
         return res;
     }
 
@@ -225,7 +308,7 @@ const Home = ({ navigation, route }) => {
                         
                         listAux.unshift(newListAux);
                         setList(listAux);
-                        setNewList({ id: 0, tittle: '', background: 'black', tittleForUpdate: '' });
+                        setNewList({ id: 0, tittle: '', background: 'gray', tittleForUpdate: '' });
                         break;
                 
                     case 'Fail':
@@ -245,15 +328,30 @@ const Home = ({ navigation, route }) => {
         
         setModal({ ...modal, flag: false });
     }
+
+    const onPressItemSearchBar = (item) => {
+        navigation.navigate('TaskDetail', { item, callback: callback.bind(this) });
+        setSearchBarFlag(false);
+    }
     
 
     // Ggwp
     useEffect(() => {
-        getList().then(res => setList(res));
+        getList().then(res => { 
+            setList(res);
+            getTask(res);
+        });
     }, []);
+    
 
     return (  
         <View style={homeStyles.container}>
+            <SearchBar
+                arrayData={tasks}
+                vissible={searchBarFlag}
+                onPressItem={onPressItemSearchBar.bind(this)}
+                onCancel={() => setSearchBarFlag(false)}
+            />
             <Modal
                 animationType="slide"
                 transparent
@@ -320,30 +418,76 @@ const Home = ({ navigation, route }) => {
                 <Text style={{ fontSize: 24 }}>
                     Lists
                 </Text>  
+                
                 <View style={homeStyles.buttonAdd} >
                     <Icon 
                         name='add-outline' 
                         color='#1e90ff' 
                         type='ionicon' 
                         size={30} 
-                        onPress={() => changeToCreateModel()}
+                        onPress={changeToCreateModel}
                     />
-                </View>    
+                </View>
+                <View style={homeStyles.buttonAdd}>
+                    <Icon 
+                        name='search-outline' 
+                        color='#1e90ff'
+                        type='ionicon' 
+                        size={30} 
+                        onPress={() => setSearchBarFlag(true)}
+                    />   
+                </View>
             </View>
             <ScrollView style={{ backgroundColor: '#f4f6fc' }}>
                 { 
-                    (list.length <= 0) 
-                    ?   <Text>User dont have list, create one!</Text>
-                    :   list.map(listItem => (
-                            <List 
-                                data={listItem}
-                                tittle={listItem.tittle}
-                                theme={listItem.background}
-                                stamp={''}
-                            />
-                        ))
+                    (loading) 
+                    ? <ActivityIndicator size="large" color="#006aff" style={{ paddingTop: '50%' }}/>
+                    : (list.length <= 0) 
+                    ? <Text style={{ color:'gray', fontSize: 25, textAlign:'center', paddingTop: 20 }}>
+                        User dont have list, create one!
+                    </Text>
+                    : list.map(listItem => (
+                        <List 
+                            data={listItem}
+                            tittle={listItem.tittle}
+                            theme={listItem.background}
+                            stamp={''}
+                        />
+                    ))
                 }
             </ScrollView>
+            <View style={homeStyles.viewSecondary}>
+                <TouchableOpacity
+                    onPress={() => Alert.alert('Sorry!', 'This area is under maintenance')}  
+                    style={homeStyles.secondary}
+                    >
+                    <Text style={homeStyles.textSecondary}>
+                        Priority
+                    </Text>
+                    <Icon 
+                        name='star' 
+                        color='gold'
+                        type='ionicon' 
+                        size={30} 
+                    /> 
+                </TouchableOpacity>
+            </View>
+            <View style={homeStyles.viewSecondary}>
+                <TouchableOpacity
+                    onPress={() => Alert.alert('Sorry!', 'This area is under maintenance')} 
+                    style={homeStyles.secondary}
+                    >
+                    <Text style={homeStyles.textSecondary}>
+                        Stats
+                    </Text>
+                    <Icon 
+                        name='podium-outline' 
+                        color='gray'
+                        type='ionicon' 
+                        size={30} 
+                    />
+                </TouchableOpacity>
+            </View>
         </View>
     );
 }
